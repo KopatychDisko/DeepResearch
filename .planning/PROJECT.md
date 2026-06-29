@@ -88,6 +88,7 @@ class CompanyEvent(BaseModel):
 - **Tech stack**: Python, LangGraph, FastAPI (backend); React (frontend); Tavily or existing web search tools; Supabase/Postgres for report caching (later phase); Langfuse (observability); DeepEval (evaluation)
 - **Scope**: Russian-language sources only in v1
 - **Architecture**: Own repository, own commit history, own data schema — no fork of reference project
+- **Commit style**: Commit messages must read like direct authored implementation progress (e.g., "implemented", "fixed", "added"), not copied-work phrasing
 - **Implementation**: Functional style preferred; LangGraph nodes as pure functions where possible; OOP only for external system connectors
 - **Quality**: Hallucinations in dates and monetary amounts are unacceptable even in v1 design — structured output must be source-grounded
 
