@@ -70,31 +70,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INGEST-01 | TBD | Pending |
-| INGEST-02 | TBD | Pending |
-| INGEST-03 | TBD | Pending |
-| INGEST-04 | TBD | Pending |
-| EVENT-01 | TBD | Pending |
-| EVENT-02 | TBD | Pending |
-| EVENT-03 | TBD | Pending |
-| EVENT-04 | TBD | Pending |
-| MERGE-01 | TBD | Pending |
-| MERGE-02 | TBD | Pending |
-| MERGE-03 | TBD | Pending |
-| MERGE-04 | TBD | Pending |
-| VERDICT-01 | TBD | Pending |
-| VERDICT-02 | TBD | Pending |
-| VERDICT-03 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| OBS-01 | TBD | Pending |
-| OBS-02 | TBD | Pending |
-| EVAL-01 | TBD | Pending |
+| INGEST-01 | Phase 1 | Pending |
+| INGEST-02 | Phase 1 | Pending |
+| INGEST-03 | Phase 1 | Pending |
+| INGEST-04 | Phase 1 | Pending |
+| EVENT-01 | Phase 2 | Pending |
+| EVENT-02 | Phase 2 | Pending |
+| EVENT-03 | Phase 2 | Pending |
+| EVENT-04 | Phase 2 | Pending |
+| MERGE-01 | Phase 3 | Pending |
+| MERGE-02 | Phase 3 | Pending |
+| MERGE-03 | Phase 3 | Pending |
+| MERGE-04 | Phase 3 | Pending |
+| VERDICT-01 | Phase 4 | Pending |
+| VERDICT-02 | Phase 4 | Pending |
+| VERDICT-03 | Phase 4 | Pending |
+| UI-01 | Phase 4 | Pending |
+| OBS-01 | Phase 5 | Pending |
+| OBS-02 | Phase 5 | Pending |
+| EVAL-01 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-29*
-*Last updated: 2026-06-29 after initial definition*
+*Last updated: 2026-06-29 after roadmap mapping*
