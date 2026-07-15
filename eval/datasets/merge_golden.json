@@ -1,0 +1,96 @@
+[
+  {
+    "id": "dedup_duplicate_review_signal",
+    "input_events": [
+      {
+        "date": "2024-03-10",
+        "category": "review_signal",
+        "description": "Сотрудники отмечают задержки зарплаты",
+        "source_url": "https://example.com/review-a",
+        "confidence": "medium"
+      },
+      {
+        "date": "2024-03-10",
+        "category": "review_signal",
+        "description": "Сотрудники отмечают задержки зарплаты.",
+        "source_url": "https://example.com/review-b",
+        "confidence": "high"
+      }
+    ],
+    "expected_canonical_count": 1,
+    "expected_source_url_count": 2,
+    "expected_conflicts": 0,
+    "expected_confidence": "high",
+    "expected_date": "2024-03-10",
+    "expected_has_date_conflict": false
+  },
+  {
+    "id": "keep_distinct_events",
+    "input_events": [
+      {
+        "date": "2024-01-15",
+        "category": "funding",
+        "description": "Компания привлекла раунд A",
+        "source_url": "https://example.com/funding",
+        "confidence": "high"
+      },
+      {
+        "date": "2024-05-20",
+        "category": "leadership",
+        "description": "Назначен новый CEO",
+        "source_url": "https://example.com/ceo",
+        "confidence": "medium"
+      }
+    ],
+    "expected_canonical_count": 2,
+    "expected_source_url_count": 1,
+    "expected_conflicts": 0,
+    "expected_has_date_conflict": false
+  },
+  {
+    "id": "layoffs_date_conflict",
+    "input_events": [
+      {
+        "date": "2024-02-01",
+        "category": "layoffs",
+        "description": "Компания сократила 10% штата",
+        "source_url": "https://example.com/layoff-a",
+        "confidence": "high"
+      },
+      {
+        "date": "2024-03-01",
+        "category": "layoffs",
+        "description": "Компания сократила 10% штата",
+        "source_url": "https://example.com/layoff-b",
+        "confidence": "medium"
+      }
+    ],
+    "expected_canonical_count": 1,
+    "expected_source_url_count": 2,
+    "expected_conflicts": 1,
+    "expected_has_date_conflict": true
+  },
+  {
+    "id": "timeline_sort_desc",
+    "input_events": [
+      {
+        "date": "2023-01-01",
+        "category": "product",
+        "description": "Запуск продукта A",
+        "source_url": "https://example.com/product-a",
+        "confidence": "high"
+      },
+      {
+        "date": "2024-06-01",
+        "category": "product",
+        "description": "Запуск продукта B",
+        "source_url": "https://example.com/product-b",
+        "confidence": "high"
+      }
+    ],
+    "expected_canonical_count": 2,
+    "expected_first_date": "2024-06-01",
+    "expected_conflicts": 0,
+    "expected_has_date_conflict": false
+  }
+]
