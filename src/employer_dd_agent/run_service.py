@@ -58,6 +58,10 @@ from employer_dd_agent.observability import (
     trace_research_run,
 )
 from employer_dd_agent.pipeline import _should_skip_identity_resolution, build_research_graph
+from employer_dd_agent.runtime_requirements import (
+    ensure_checkpointer_directory,
+    require_tavily_api_key,
+)
 from employer_dd_agent.verdict import build_insufficient_data_verdict
 
 
@@ -83,6 +87,14 @@ def _sqlite_checkpointer(database_path: str) -> Iterator[SqliteSaver]:
         yield checkpointer
     finally:
         connection.close()
+
+
+@contextmanager
+def _compiled_research_graph(settings: Configuration) -> Iterator[object]:
+    ensure_checkpointer_directory(settings.sqlite_checkpointer_path)
+    graph: StateGraph = build_research_graph()
+    with _sqlite_checkpointer(settings.sqlite_checkpointer_path) as checkpointer:
+        yield graph.compile(checkpointer=checkpointer)
 
 
 def _set_run_status(run_id: UUID, status: RunLifecycleStatus, error_message: str | None) -> None:
@@ -152,29 +164,10 @@ def _build_run_configurable(
     }
 
 
-def _build_checkpointer_context(settings: Configuration, run_id: UUID) -> RunExecutionContext:
-    credentials = load_model_credentials()
-    require_model_credentials(credentials=credentials)
-    resolved_model = resolve_llm_model(
-        configured_model=settings.llm_model,
-        credentials=credentials,
-    )
-    thread_id: str = str(run_id)
-    run_config: RunnableConfig = {
-        "configurable": _build_run_configurable(
-            settings=settings,
-            run_id=run_id,
-            resolved_model=resolved_model,
-        ),
-        "callbacks": [],
-    }
-    return RunExecutionContext(run_id=run_id, thread_id=thread_id, run_config=run_config)
-
-
-def _build_traced_execution_context(
+def _build_run_execution_context(
     settings: Configuration,
     run_id: UUID,
-    request: RunRequest,
+    request: RunRequest | None,
     langfuse_handler: BaseCallbackHandler | None,
 ) -> RunExecutionContext:
     credentials = load_model_credentials()
@@ -183,7 +176,7 @@ def _build_traced_execution_context(
         configured_model=settings.llm_model,
         credentials=credentials,
     )
-    callbacks = []
+    callbacks: list[BaseCallbackHandler] = []
     if langfuse_handler is not None and settings.langfuse_tracing_enabled:
         callbacks.append(langfuse_handler)
     thread_id: str = str(run_id)
@@ -194,10 +187,45 @@ def _build_traced_execution_context(
             resolved_model=resolved_model,
         ),
         "callbacks": callbacks,
-        "metadata": build_langfuse_run_metadata(run_id=run_id, request=request),
-        "run_name": build_langfuse_run_name(request=request),
     }
+    if request is not None:
+        run_config["metadata"] = build_langfuse_run_metadata(run_id=run_id, request=request)
+        run_config["run_name"] = build_langfuse_run_name(request=request)
     return RunExecutionContext(run_id=run_id, thread_id=thread_id, run_config=run_config)
+
+
+def _build_checkpointer_context(settings: Configuration, run_id: UUID) -> RunExecutionContext:
+    return _build_run_execution_context(
+        settings=settings,
+        run_id=run_id,
+        request=None,
+        langfuse_handler=None,
+    )
+
+
+def _launch_background_thread(thread_name: str, target: Callable[[], None]) -> None:
+    worker_thread = threading.Thread(target=target, name=thread_name, daemon=True)
+    worker_thread.start()
+
+
+def _fail_background_run(
+    run_id: UUID,
+    error: Exception,
+    on_complete: Callable[[UUID, ResearchRunResult | None, str | None], None],
+) -> None:
+    error_message: str = str(error)
+    _set_run_status(
+        run_id=run_id,
+        status=RunLifecycleStatus.FAILED,
+        error_message=error_message,
+    )
+    on_complete(run_id, None, error_message)
+
+
+def _require_awaiting_identity_confirmation(state: ResearchRunState, run_id: UUID) -> None:
+    status: RunLifecycleStatus = _status_from_state(state=state)
+    if status != RunLifecycleStatus.AWAITING_INPUT:
+        raise ValueError(f"Run {run_id} is not awaiting identity confirmation.")
 
 
 def _state_to_result(state: ResearchRunState) -> ResearchRunResult:
@@ -297,21 +325,10 @@ def _execute_graph(
     run_id: UUID,
     initial_state: ResearchRunState | None,
 ) -> ResearchRunResult | None:
-    import os
-
-    tavily_key: str | None = os.environ.get("TAVILY_API_KEY")
-    if tavily_key is None:
-        raise RuntimeError("Missing Tavily credentials: set TAVILY_API_KEY.")
-
-    checkpointer_directory: str = os.path.dirname(settings.sqlite_checkpointer_path)
-    if checkpointer_directory:
-        os.makedirs(checkpointer_directory, exist_ok=True)
-
-    graph: StateGraph = build_research_graph()
+    require_tavily_api_key()
     _set_run_status(run_id=run_id, status=RunLifecycleStatus.RUNNING, error_message=None)
 
-    with _sqlite_checkpointer(settings.sqlite_checkpointer_path) as checkpointer:
-        compiled_graph = graph.compile(checkpointer=checkpointer)
+    with _compiled_research_graph(settings=settings) as compiled_graph:
         if initial_state is not None:
             request: RunRequest = load_run_request(initial_state["request"])
         else:
@@ -329,7 +346,7 @@ def _execute_graph(
             )
 
         with trace_research_run(run_id=run_id, request=request) as langfuse_handler:
-            execution_context: RunExecutionContext = _build_traced_execution_context(
+            execution_context: RunExecutionContext = _build_run_execution_context(
                 settings=settings,
                 run_id=run_id,
                 request=request,
@@ -392,9 +409,7 @@ def _load_checkpoint_state(run_id: UUID) -> tuple[Configuration, RunExecutionCon
         settings=settings,
         run_id=run_id,
     )
-    graph: StateGraph = build_research_graph()
-    with _sqlite_checkpointer(settings.sqlite_checkpointer_path) as checkpointer:
-        compiled_graph = graph.compile(checkpointer=checkpointer)
+    with _compiled_research_graph(settings=settings) as compiled_graph:
         state_snapshot = compiled_graph.get_state(config=execution_context.run_config)
         if state_snapshot.values is None or not state_snapshot.values:
             raise LookupError(f"Run not found: {run_id}")
@@ -404,9 +419,7 @@ def _load_checkpoint_state(run_id: UUID) -> tuple[Configuration, RunExecutionCon
 
 def validate_identity_confirmation_request(run_id: UUID, candidate_id: str) -> None:
     _settings, _execution_context, state = _load_checkpoint_state(run_id=run_id)
-    status: RunLifecycleStatus = _status_from_state(state=state)
-    if status != RunLifecycleStatus.AWAITING_INPUT:
-        raise ValueError(f"Run {run_id} is not awaiting identity confirmation.")
+    _require_awaiting_identity_confirmation(state=state, run_id=run_id)
     candidates = load_company_candidates(state.get("identity_candidates", []))
     find_candidate_by_id(
         candidates=candidates,
@@ -416,9 +429,7 @@ def validate_identity_confirmation_request(run_id: UUID, candidate_id: str) -> N
 
 def confirm_company_identity_selection(run_id: UUID, candidate_id: str) -> RunRequest:
     settings, execution_context, state = _load_checkpoint_state(run_id=run_id)
-    status: RunLifecycleStatus = _status_from_state(state=state)
-    if status != RunLifecycleStatus.AWAITING_INPUT:
-        raise ValueError(f"Run {run_id} is not awaiting identity confirmation.")
+    _require_awaiting_identity_confirmation(state=state, run_id=run_id)
 
     candidates = load_company_candidates(state.get("identity_candidates", []))
     selected_candidate = find_candidate_by_id(
@@ -433,9 +444,7 @@ def confirm_company_identity_selection(run_id: UUID, candidate_id: str) -> RunRe
         user_description=request.company_description,
     )
 
-    graph: StateGraph = build_research_graph()
-    with _sqlite_checkpointer(settings.sqlite_checkpointer_path) as checkpointer:
-        compiled_graph = graph.compile(checkpointer=checkpointer)
+    with _compiled_research_graph(settings=settings) as compiled_graph:
         compiled_graph.update_state(
             execution_context.run_config,
             {
@@ -455,24 +464,13 @@ def _confirm_and_resume_research(
     run_id: UUID,
     candidate_id: str,
 ) -> ResearchRunResult:
-    import os
-
-    tavily_key: str | None = os.environ.get("TAVILY_API_KEY")
-    if tavily_key is None:
-        raise RuntimeError("Missing Tavily credentials: set TAVILY_API_KEY.")
-
+    require_tavily_api_key()
     request: RunRequest = confirm_company_identity_selection(
         run_id=run_id,
         candidate_id=candidate_id,
     )
 
-    checkpointer_directory: str = os.path.dirname(settings.sqlite_checkpointer_path)
-    if checkpointer_directory:
-        os.makedirs(checkpointer_directory, exist_ok=True)
-
-    graph: StateGraph = build_research_graph()
-    with _sqlite_checkpointer(settings.sqlite_checkpointer_path) as checkpointer:
-        compiled_graph = graph.compile(checkpointer=checkpointer)
+    with _compiled_research_graph(settings=settings) as compiled_graph:
         checkpointer_context: RunExecutionContext = _build_checkpointer_context(
             settings=settings,
             run_id=run_id,
@@ -486,7 +484,7 @@ def _confirm_and_resume_research(
         )
 
         with trace_research_run(run_id=run_id, request=request) as langfuse_handler:
-            execution_context: RunExecutionContext = _build_traced_execution_context(
+            execution_context: RunExecutionContext = _build_run_execution_context(
                 settings=settings,
                 run_id=run_id,
                 request=request,
@@ -532,20 +530,12 @@ def confirm_and_continue_research_run_background(
             )
             on_complete(run_id, result, None)
         except Exception as error:
-            error_message: str = str(error)
-            _set_run_status(
-                run_id=run_id,
-                status=RunLifecycleStatus.FAILED,
-                error_message=error_message,
-            )
-            on_complete(run_id, None, error_message)
+            _fail_background_run(run_id=run_id, error=error, on_complete=on_complete)
 
-    worker_thread = threading.Thread(
+    _launch_background_thread(
+        thread_name=f"research-run-confirm-{run_id}",
         target=_background_worker,
-        name=f"research-run-confirm-{run_id}",
-        daemon=True,
     )
-    worker_thread.start()
 
 
 def continue_research_run_background(
@@ -571,20 +561,12 @@ def continue_research_run_background(
                 raise RuntimeError("Research stopped before completion.")
             on_complete(run_id, result, None)
         except Exception as error:
-            error_message: str = str(error)
-            _set_run_status(
-                run_id=run_id,
-                status=RunLifecycleStatus.FAILED,
-                error_message=error_message,
-            )
-            on_complete(run_id, None, error_message)
+            _fail_background_run(run_id=run_id, error=error, on_complete=on_complete)
 
-    worker_thread = threading.Thread(
+    _launch_background_thread(
+        thread_name=f"research-run-continue-{run_id}",
         target=_background_worker,
-        name=f"research-run-continue-{run_id}",
-        daemon=True,
     )
-    worker_thread.start()
 
 
 def get_research_run_status(run_id: UUID) -> RunStatusResponse:
@@ -593,10 +575,8 @@ def get_research_run_status(run_id: UUID) -> RunStatusResponse:
         settings=settings,
         run_id=run_id,
     )
-    graph: StateGraph = build_research_graph()
 
-    with _sqlite_checkpointer(settings.sqlite_checkpointer_path) as checkpointer:
-        compiled_graph = graph.compile(checkpointer=checkpointer)
+    with _compiled_research_graph(settings=settings) as compiled_graph:
         state_snapshot = compiled_graph.get_state(config=execution_context.run_config)
         if state_snapshot.values is None or not state_snapshot.values:
             tracked_status: RunLifecycleStatus | None = _get_run_status(run_id=run_id)
@@ -630,13 +610,9 @@ def start_research_run_background(
     run_id: UUID | None,
     on_complete: Callable[[UUID, ResearchRunResult | None, str | None], None],
 ) -> UUID:
-    import os
-
     credentials = load_model_credentials()
     require_model_credentials(credentials=credentials)
-    tavily_key: str | None = os.environ.get("TAVILY_API_KEY")
-    if tavily_key is None:
-        raise RuntimeError("Missing Tavily credentials: set TAVILY_API_KEY.")
+    require_tavily_api_key()
 
     selected_run_id: UUID = run_id if run_id is not None else uuid4()
     settings = Configuration()
@@ -654,18 +630,14 @@ def start_research_run_background(
             )
             on_complete(selected_run_id, result, None)
         except Exception as error:
-            error_message: str = str(error)
-            _set_run_status(
+            _fail_background_run(
                 run_id=selected_run_id,
-                status=RunLifecycleStatus.FAILED,
-                error_message=error_message,
+                error=error,
+                on_complete=on_complete,
             )
-            on_complete(selected_run_id, None, error_message)
 
-    worker_thread = threading.Thread(
+    _launch_background_thread(
+        thread_name=f"research-run-{selected_run_id}",
         target=_background_worker,
-        name=f"research-run-{selected_run_id}",
-        daemon=True,
     )
-    worker_thread.start()
     return selected_run_id

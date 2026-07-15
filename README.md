@@ -159,9 +159,3 @@ tests/                   # Unit tests
 scripts/e2e_run.py       # CLI smoke test
 eval/                    # DeepEval datasets (optional)
 ```
-
----
-
-## License
-
-Private / unlicensed — add a license before public distribution if needed.

@@ -33,6 +33,14 @@ def _raise_runtime_configuration_error(error: RuntimeError) -> None:
     raise HTTPException(status_code=503, detail=str(error)) from error
 
 
+def _noop_run_complete(
+    completed_run_id: UUID,
+    result: ResearchRunResult | None,
+    error_message: str | None,
+) -> None:
+    _ = (completed_run_id, result, error_message)
+
+
 def _build_run_response(run_id: UUID, result: ResearchRunResult) -> RunResponse:
     return RunResponse(
         run_id=run_id,
@@ -70,18 +78,10 @@ def create_app() -> FastAPI:
         try:
             if background:
                 run_id: UUID = uuid4()
-
-                def _on_complete(
-                    completed_run_id: UUID,
-                    result: ResearchRunResult | None,
-                    error_message: str | None,
-                ) -> None:
-                    _ = (completed_run_id, result, error_message)
-
                 started_run_id: UUID = start_research_run_background(
                     request=request,
                     run_id=run_id,
-                    on_complete=_on_complete,
+                    on_complete=_noop_run_complete,
                 )
                 return RunStartResponse(
                     run_id=started_run_id,
@@ -107,17 +107,10 @@ def create_app() -> FastAPI:
                 candidate_id=request.candidate_id,
             )
 
-            def _on_complete(
-                completed_run_id: UUID,
-                result: ResearchRunResult | None,
-                error_message: str | None,
-            ) -> None:
-                _ = (completed_run_id, result, error_message)
-
             confirm_and_continue_research_run_background(
                 run_id=run_id,
                 candidate_id=request.candidate_id,
-                on_complete=_on_complete,
+                on_complete=_noop_run_complete,
             )
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
