@@ -40,6 +40,9 @@ class ResearchRunState(TypedDict):
     conversation_history: list[AIMessage | ToolMessage]
     iteration_count: int
     finished: bool
+    budget_deadline_unix: float | None
+    estimated_tokens_used: int
+    budget_stop_reason: str | None
 
 
 def dump_run_request(request: RunRequest) -> dict[str, object]:

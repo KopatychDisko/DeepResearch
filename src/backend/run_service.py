@@ -146,6 +146,9 @@ def build_initial_state(request: RunRequest, run_id: UUID) -> ResearchRunState:
         "conversation_history": [],
         "iteration_count": 0,
         "finished": False,
+        "budget_deadline_unix": None,
+        "estimated_tokens_used": 0,
+        "budget_stop_reason": None,
     }
 
 
@@ -161,6 +164,8 @@ def _build_run_configurable(
         "structured_llm_max_tokens": settings.structured_llm_max_tokens,
         "tools_llm_max_tokens": settings.tools_llm_max_tokens,
         "max_tool_iterations": settings.max_tool_iterations,
+        "max_run_wall_clock_seconds": settings.max_run_wall_clock_seconds,
+        "max_estimated_run_tokens": settings.max_estimated_run_tokens,
     }
 
 
@@ -180,6 +185,7 @@ def _build_run_execution_context(
     if langfuse_handler is not None and settings.langfuse_tracing_enabled:
         callbacks.append(langfuse_handler)
     thread_id: str = str(run_id)
+    recursion_limit: int = (2 * settings.max_tool_iterations) + 12
     run_config: RunnableConfig = {
         "configurable": _build_run_configurable(
             settings=settings,
@@ -187,6 +193,7 @@ def _build_run_execution_context(
             resolved_model=resolved_model,
         ),
         "callbacks": callbacks,
+        "recursion_limit": recursion_limit,
     }
     if request is not None:
         run_config["metadata"] = build_langfuse_run_metadata(run_id=run_id, request=request)
