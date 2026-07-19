@@ -1,3 +1,5 @@
+"""Runnable configuration for models, retries, and harness budget knobs."""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +10,8 @@ from pydantic import BaseModel, Field
 
 
 class Configuration(BaseModel):
+    """Per-run settings including LLM names and supervisor budget limits."""
+
     llm_model: str = Field(default="openai:gpt-5-mini")
     structured_llm_model: str | None = Field(default=None)
     tools_llm_model: str | None = Field(default=None)
@@ -26,22 +30,26 @@ class Configuration(BaseModel):
     langfuse_tracing_enabled: bool = Field(default=True)
 
     def get_structured_model_name(self) -> str:
+        """Resolve the model used for structured extraction, falling back to llm_model."""
         if self.structured_llm_model is not None:
             return self.structured_llm_model
         return self.llm_model
 
     def get_tools_model_name(self) -> str:
+        """Resolve the model used for supervisor tool calls, falling back to llm_model."""
         if self.tools_llm_model is not None:
             return self.tools_llm_model
         return self.llm_model
 
     def get_chunk_model_name(self) -> str:
+        """Resolve the model used for chunking helpers, falling back to llm_model."""
         if self.chunk_llm_model is not None:
             return self.chunk_llm_model
         return self.llm_model
 
     @classmethod
     def from_runnable_config(cls, config: RunnableConfig) -> "Configuration":
+        """Build configuration from env overrides and LangGraph configurable values."""
         configurable: dict[str, Any] = config.get("configurable", {})
         values: dict[str, Any] = {}
         for field_name in cls.model_fields:

@@ -1,3 +1,5 @@
+"""Prompt templates for supervisor, structure, merge, verdict, and identity steps."""
+
 from __future__ import annotations
 
 SUPERVISOR_PROMPT = """

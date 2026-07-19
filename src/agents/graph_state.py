@@ -1,3 +1,5 @@
+"""LangGraph research-run state shape and JSON dump/load helpers."""
+
 from __future__ import annotations
 
 from typing import Annotated, Literal, TypedDict
@@ -25,6 +27,8 @@ def _replace_optional_string(_left: str | None, right: str | None) -> str | None
 
 
 class ResearchRunState(TypedDict):
+    """Checkpointed graph state for one employer due diligence research run."""
+
     run_id: str
     phase: Annotated[str, _replace_string]
     status: Annotated[str, _replace_string]
@@ -46,64 +50,80 @@ class ResearchRunState(TypedDict):
 
 
 def dump_run_request(request: RunRequest) -> dict[str, object]:
+    """Serialize a RunRequest into JSON-compatible graph state."""
     return request.model_dump(mode="json")
 
 
 def load_run_request(payload: dict[str, object]) -> RunRequest:
+    """Deserialize a RunRequest from graph state."""
     return RunRequest.model_validate(payload)
 
 
 def dump_company_identity(identity: CompanyIdentity) -> dict[str, object]:
+    """Serialize a CompanyIdentity into JSON-compatible graph state."""
     return identity.model_dump(mode="json")
 
 
 def load_company_identity(payload: dict[str, object]) -> CompanyIdentity:
+    """Deserialize a CompanyIdentity from graph state."""
     return CompanyIdentity.model_validate(payload)
 
 
 def dump_raw_findings(findings: list[RawFinding]) -> list[dict[str, object]]:
+    """Serialize raw findings into JSON-compatible graph state."""
     return [finding.model_dump(mode="json") for finding in findings]
 
 
 def load_raw_findings(payload: list[dict[str, object]]) -> list[RawFinding]:
+    """Deserialize raw findings from graph state."""
     return [RawFinding.model_validate(item) for item in payload]
 
 
 def dump_company_events(events: list[CompanyEvent]) -> list[dict[str, object]]:
+    """Serialize company events into JSON-compatible graph state."""
     return [event.model_dump(mode="json") for event in events]
 
 
 def load_company_events(payload: list[dict[str, object]]) -> list[CompanyEvent]:
+    """Deserialize company events from graph state."""
     return [CompanyEvent.model_validate(item) for item in payload]
 
 
 def dump_canonical_timeline(timeline: CanonicalTimeline) -> dict[str, object]:
+    """Serialize a CanonicalTimeline into JSON-compatible graph state."""
     return timeline.model_dump(mode="json")
 
 
 def load_canonical_timeline(payload: dict[str, object]) -> CanonicalTimeline:
+    """Deserialize a CanonicalTimeline from graph state."""
     return CanonicalTimeline.model_validate(payload)
 
 
 def dump_employer_verdict(verdict: EmployerVerdict) -> dict[str, object]:
+    """Serialize an EmployerVerdict into JSON-compatible graph state."""
     return verdict.model_dump(mode="json")
 
 
 def load_employer_verdict(payload: dict[str, object]) -> EmployerVerdict:
+    """Deserialize an EmployerVerdict from graph state."""
     return EmployerVerdict.model_validate(payload)
 
 
 def dump_company_candidates(candidates: list[CompanyCandidate]) -> list[dict[str, object]]:
+    """Serialize identity candidates into JSON-compatible graph state."""
     return [candidate.model_dump(mode="json") for candidate in candidates]
 
 
 def load_company_candidates(payload: list[dict[str, object]]) -> list[CompanyCandidate]:
+    """Deserialize identity candidates from graph state."""
     return [CompanyCandidate.model_validate(item) for item in payload]
 
 
 def dump_completed_sources(sources: list[SourceType]) -> list[str]:
+    """Serialize completed source types to their string values."""
     return [source.value for source in sources]
 
 
 def load_completed_sources(payload: list[str]) -> list[SourceType]:
+    """Deserialize completed source type strings into SourceType values."""
     return [SourceType(source_value) for source_value in payload]

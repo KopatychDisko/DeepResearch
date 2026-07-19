@@ -1,3 +1,5 @@
+"""Langfuse tracing helpers for research runs and per-source tool spans."""
+
 from __future__ import annotations
 
 import atexit
@@ -21,6 +23,7 @@ _observability_shutdown_registered: bool = False
 
 
 def is_langfuse_configured() -> bool:
+    """Return whether Langfuse public and secret keys are present in the environment."""
     public_key: str | None = os.environ.get("LANGFUSE_PUBLIC_KEY")
     secret_key: str | None = os.environ.get("LANGFUSE_SECRET_KEY")
     return public_key is not None and secret_key is not None
@@ -59,6 +62,7 @@ def initialize_observability() -> None:
 
 
 def flush_langfuse() -> None:
+    """Flush pending Langfuse events when tracing credentials are configured."""
     if not is_langfuse_configured():
         return
     if not _ensure_langfuse_initialized():
@@ -71,6 +75,7 @@ def build_langfuse_run_metadata(
     run_id: UUID,
     request: RunRequest,
 ) -> dict[str, object]:
+    """Build Langfuse session metadata tags for a research run."""
     tags: list[str] = [
         "employer-dd",
         f"lang:{request.response_language.value}",
@@ -82,10 +87,12 @@ def build_langfuse_run_metadata(
 
 
 def build_langfuse_run_name(request: RunRequest) -> str:
+    """Build a stable Langfuse trace name from the company under research."""
     return f"employer-dd:{request.company_name}"
 
 
 def record_budget_stop_reason(budget_stop_reason: str) -> None:
+    """Attach the harness budget-stop reason to the current Langfuse span when tracing."""
     settings = Configuration()
     if not settings.langfuse_tracing_enabled or not _ensure_langfuse_initialized():
         return
@@ -98,6 +105,7 @@ def record_budget_stop_reason(budget_stop_reason: str) -> None:
 
 
 def build_langfuse_trace_input(request: RunRequest) -> dict[str, str | None]:
+    """Serialize run request fields used as Langfuse root-span input."""
     trace_input: dict[str, str | None] = {
         "company_name": request.company_name,
         "response_language": request.response_language.value,
@@ -114,6 +122,7 @@ def trace_research_run(
     run_id: UUID,
     request: RunRequest,
 ) -> Iterator[BaseCallbackHandler | None]:
+    """Open a Langfuse root span for one research run and yield a callback handler."""
     settings = Configuration()
     if not settings.langfuse_tracing_enabled or not _ensure_langfuse_initialized():
         yield None
@@ -148,6 +157,7 @@ def trace_research_run(
 
 
 def get_langfuse_handler() -> BaseCallbackHandler | None:
+    """Return a Langfuse LangChain callback handler when observability is ready."""
     if not _ensure_langfuse_initialized():
         return None
     return CallbackHandler()
@@ -159,6 +169,7 @@ def trace_source_research(
     response_language: ResponseLanguage,
     action: Callable[[], ReturnType],
 ) -> ReturnType:
+    """Wrap a source fetch in a Langfuse span and return the action result."""
     settings = Configuration()
     if not settings.langfuse_tracing_enabled or not _ensure_langfuse_initialized():
         return action()
