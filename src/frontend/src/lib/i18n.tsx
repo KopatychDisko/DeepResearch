@@ -35,7 +35,9 @@ export interface Translations {
   reportReady: string;
   sourcesCount: string;
   tabVerdict: string;
+  tabTimeline: string;
   tabSources: string;
+  reportSectionsAria: string;
   sourcesTitle: string;
   sourcesHint: string;
   sourcesEmpty: string;
@@ -67,6 +69,9 @@ export interface Translations {
   evidenceTitle: string;
   evidenceEmpty: string;
   timelineDateUnknown: string;
+  timelineEmpty: string;
+  timelineDateConflict: string;
+  timelineConflictsHeading: string;
   categoryFunding: string;
   categoryLeadership: string;
   categoryLayoffs: string;
@@ -108,7 +113,9 @@ const translations: Record<Locale, Translations> = {
     reportReady: "Отчёт готов",
     sourcesCount: "источников",
     tabVerdict: "Вердикт",
+    tabTimeline: "Таймлайн",
     tabSources: "Источники",
+    reportSectionsAria: "Разделы отчёта",
     sourcesTitle: "Ссылки, использованные в отчёте",
     sourcesHint:
       "Все материалы, которые агент нашёл в открытых источниках перед формированием вердикта.",
@@ -141,6 +148,9 @@ const translations: Record<Locale, Translations> = {
     evidenceTitle: "Источники вердикта",
     evidenceEmpty: "Нет привязанных источников для вердикта.",
     timelineDateUnknown: "дата неизвестна",
+    timelineEmpty: "События не найдены.",
+    timelineDateConflict: "конфликт дат",
+    timelineConflictsHeading: "Конфликты в данных",
     categoryFunding: "Финансы",
     categoryLeadership: "Руководство",
     categoryLayoffs: "Сокращения",
@@ -180,7 +190,9 @@ const translations: Record<Locale, Translations> = {
     reportReady: "Report ready",
     sourcesCount: "sources",
     tabVerdict: "Verdict",
+    tabTimeline: "Timeline",
     tabSources: "Sources",
+    reportSectionsAria: "Report sections",
     sourcesTitle: "Links used in the report",
     sourcesHint: "All materials the agent found in open sources before forming the verdict.",
     sourcesEmpty: "No sources collected.",
@@ -212,6 +224,9 @@ const translations: Record<Locale, Translations> = {
     evidenceTitle: "Verdict evidence",
     evidenceEmpty: "No linked sources for this verdict.",
     timelineDateUnknown: "date unknown",
+    timelineEmpty: "No events found.",
+    timelineDateConflict: "date conflict",
+    timelineConflictsHeading: "Data conflicts",
     categoryFunding: "Funding",
     categoryLeadership: "Leadership",
     categoryLayoffs: "Layoffs",
