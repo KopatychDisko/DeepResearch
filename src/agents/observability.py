@@ -11,8 +11,8 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 from langfuse import Langfuse, get_client, propagate_attributes
 from langfuse.langchain import CallbackHandler
 
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.models import ResponseLanguage, RunRequest, SourceType
+from agents.configuration import Configuration
+from agents.models import ResponseLanguage, RunRequest, SourceType
 
 ReturnType = TypeVar("ReturnType")
 

@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from employer_dd_agent.models import (
+from agents.models import (
     IdentityConfirmationRequest,
     ResearchRunResult,
     RunLifecycleStatus,

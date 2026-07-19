@@ -8,8 +8,8 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, ValidationError
 from typing import Type, TypeVar
 
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.llm_service import create_llm_text_model, create_llm_structured_model
+from agents.configuration import Configuration
+from agents.llm_service import create_llm_text_model, create_llm_structured_model
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
 

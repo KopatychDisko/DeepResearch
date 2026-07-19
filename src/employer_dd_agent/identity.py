@@ -10,16 +10,16 @@ from urllib.parse import urlparse
 from langchain_core.runnables import RunnableConfig
 from pydantic import AnyHttpUrl
 
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.models import (
+from agents.configuration import Configuration
+from agents.models import (
     CompanyCandidate,
     CompanyIdentity,
     Confidence,
     ResponseLanguage,
     StructuredCompanyCandidates,
 )
-from employer_dd_agent.prompts import IDENTITY_RESOLUTION_PROMPT
-from employer_dd_agent.language import (
+from agents.prompts import IDENTITY_RESOLUTION_PROMPT
+from agents.language import (
     identity_ambiguous_message,
     identity_not_found_message,
     identity_unconfirmed_message,
@@ -28,7 +28,7 @@ from employer_dd_agent.language import (
     response_language_instruction,
 )
 from employer_dd_agent.sources import search_web
-from employer_dd_agent.structured_output import invoke_structured_output
+from agents.structured_output import invoke_structured_output
 
 
 class IdentityResolutionStatus(str, Enum):

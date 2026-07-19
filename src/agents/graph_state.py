@@ -4,7 +4,7 @@ from typing import Annotated, Literal, TypedDict
 
 from langchain_core.messages import AIMessage, ToolMessage
 
-from employer_dd_agent.models import (
+from agents.models import (
     CanonicalTimeline,
     CompanyCandidate,
     CompanyEvent,

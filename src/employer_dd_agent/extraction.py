@@ -5,8 +5,8 @@ from re import Pattern
 
 from pydantic import AnyHttpUrl
 
-from employer_dd_agent.chunking import chunk_text
-from employer_dd_agent.models import (
+from agents.chunking import chunk_text
+from agents.models import (
     CompanyEvent,
     Confidence,
     EventCategory,

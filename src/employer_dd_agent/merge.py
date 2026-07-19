@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from pydantic import AnyHttpUrl
 
-from employer_dd_agent.models import (
+from agents.models import (
     CanonicalTimeline,
     CanonicalTimelineEvent,
     CompanyEvent,

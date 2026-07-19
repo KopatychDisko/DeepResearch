@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from langchain_tavily import TavilySearch
 
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.models import (
+from agents.configuration import Configuration
+from agents.models import (
     CompanyIdentity,
     RawFinding,
     RetrievalMetadata,

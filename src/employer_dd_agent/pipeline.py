@@ -9,8 +9,8 @@ from langchain_core.tools import tool
 from langgraph.graph import START, StateGraph
 from langgraph.types import Command
 
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.graph_state import (
+from agents.configuration import Configuration
+from agents.graph_state import (
     ResearchRunState,
     dump_canonical_timeline,
     dump_company_candidates,
@@ -26,14 +26,14 @@ from employer_dd_agent.graph_state import (
     load_raw_findings,
     load_run_request,
 )
-from employer_dd_agent.language import response_language_instruction
+from agents.language import response_language_instruction
 from employer_dd_agent.identity import (
     IdentityResolutionStatus,
     resolve_company_identity_from_web,
 )
-from employer_dd_agent.llm_service import create_llm_with_tools
+from agents.llm_service import create_llm_with_tools
 from employer_dd_agent.merge import merge_events_into_timeline
-from employer_dd_agent.models import (
+from agents.models import (
     CompanyEvent,
     CompanyIdentity,
     RawFinding,
@@ -43,10 +43,10 @@ from employer_dd_agent.models import (
     SourceType,
     StructuredCompanyEvents,
 )
-from employer_dd_agent.observability import trace_source_research
-from employer_dd_agent.prompts import STRUCTURE_EVENTS_PROMPT, SUPERVISOR_PROMPT
+from agents.observability import trace_source_research
+from agents.prompts import STRUCTURE_EVENTS_PROMPT, SUPERVISOR_PROMPT
 from employer_dd_agent.sources import fetch_hh, fetch_news, fetch_reviews
-from employer_dd_agent.structured_output import invoke_structured_output
+from agents.structured_output import invoke_structured_output
 from employer_dd_agent.verdict import generate_employer_verdict
 
 

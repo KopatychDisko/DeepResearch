@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from employer_dd_agent.models import EventCategory, ResponseLanguage
+from agents.models import EventCategory, ResponseLanguage
 
 
 def parse_response_language(value: str) -> ResponseLanguage:

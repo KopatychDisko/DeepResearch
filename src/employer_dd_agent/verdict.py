@@ -4,14 +4,14 @@ import json
 
 from langchain_core.runnables import RunnableConfig
 
-from employer_dd_agent.language import (
+from agents.language import (
     data_conflict_label,
     event_category_label,
     insufficient_data_score_explanation,
     insufficient_data_summary,
     response_language_instruction,
 )
-from employer_dd_agent.models import (
+from agents.models import (
     CanonicalTimeline,
     EmployerVerdict,
     EventCategory,
@@ -20,8 +20,8 @@ from employer_dd_agent.models import (
     VerdictColor,
     VerdictEvidenceLink,
 )
-from employer_dd_agent.prompts import VERDICT_PROMPT
-from employer_dd_agent.structured_output import invoke_structured_output
+from agents.prompts import VERDICT_PROMPT
+from agents.structured_output import invoke_structured_output
 
 _RED_FLAG_CATEGORIES: frozenset[EventCategory] = frozenset(
     {EventCategory.LAYOFFS, EventCategory.SCANDAL}

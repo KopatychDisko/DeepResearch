@@ -14,15 +14,15 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph
 from langgraph.types import Command
 
-from employer_dd_agent.checkpoint_serde import create_checkpoint_serde
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.model_credentials import (
+from agents.checkpoint_serde import create_checkpoint_serde
+from agents.configuration import Configuration
+from agents.model_credentials import (
     ResolvedLlmModel,
     load_model_credentials,
     require_model_credentials,
     resolve_llm_model,
 )
-from employer_dd_agent.graph_state import (
+from agents.graph_state import (
     ResearchRunState,
     dump_canonical_timeline,
     dump_company_identity,
@@ -42,7 +42,7 @@ from employer_dd_agent.identity import (
     find_candidate_by_id,
     normalize_company_name,
 )
-from employer_dd_agent.models import (
+from agents.models import (
     CanonicalTimeline,
     CompanyIdentity,
     ResearchRunResult,
@@ -52,7 +52,7 @@ from employer_dd_agent.models import (
     RunStatusResponse,
     utc_now,
 )
-from employer_dd_agent.observability import (
+from agents.observability import (
     build_langfuse_run_metadata,
     build_langfuse_run_name,
     trace_research_run,

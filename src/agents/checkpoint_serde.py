@@ -6,7 +6,7 @@ import inspect
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from pydantic import BaseModel
 
-import employer_dd_agent.models as models_module
+import agents.models as models_module
 
 
 def _collect_allowed_checkpoint_modules() -> list[tuple[str, ...]]:

@@ -7,7 +7,7 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel
 
-from employer_dd_agent.configuration import Configuration
+from agents.configuration import Configuration
 
 
 _configurable_model = init_chat_model(configurable_fields=("model", "max_tokens", "api_key"))
