@@ -22,6 +22,12 @@ REQUIRED_DOC_FILES: tuple[str, ...] = (
     "src/agents/sources/news.py",
     "src/agents/sources/reviews.py",
     "src/agents/sources/hh.py",
+    "src/agents/structure_events/node.py",
+    "src/agents/structure_events/extraction.py",
+    "src/agents/merge/node.py",
+    "src/agents/merge/merge.py",
+    "src/agents/verdict/node.py",
+    "src/agents/verdict/verdict.py",
 )
 
 

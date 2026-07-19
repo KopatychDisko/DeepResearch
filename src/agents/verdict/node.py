@@ -1,3 +1,5 @@
+"""Graph node that generates the final employer verdict and completes the run."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -24,6 +26,7 @@ def generate_verdict_step(
     state: ResearchRunState,
     config: RunnableConfig,
 ) -> Command[Literal["__end__"]]:
+    """Produce the employer verdict from the timeline and end the research run."""
     identity = load_company_identity(state["identity"])
     request = load_run_request(state["request"])
     timeline = load_canonical_timeline(state["timeline"])

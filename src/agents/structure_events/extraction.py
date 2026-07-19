@@ -1,3 +1,5 @@
+"""Rule-based extraction of company events from raw finding text chunks."""
+
 from __future__ import annotations
 
 import re
@@ -120,6 +122,7 @@ def _extract_events_from_chunk(
 
 
 def extract_events_from_finding(finding: RawFinding) -> list[CompanyEvent]:
+    """Extract categorized company events from one finding's title and snippet."""
     combined_text: str = f"{finding.title}. {finding.snippet}"
     chunks: list[str] = chunk_text(combined_text, _CHUNK_SIZE, _CHUNK_OVERLAP)
 
@@ -136,6 +139,7 @@ def extract_events_from_finding(finding: RawFinding) -> list[CompanyEvent]:
 
 
 def extract_events_from_findings(findings: list[RawFinding]) -> list[CompanyEvent]:
+    """Extract company events from every finding in the list."""
     all_events: list[CompanyEvent] = []
     for finding in findings:
         finding_events: list[CompanyEvent] = extract_events_from_finding(finding)

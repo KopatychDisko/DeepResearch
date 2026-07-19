@@ -1,3 +1,5 @@
+"""Graph node that merges structured events into a canonical timeline."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -14,6 +16,7 @@ def _phase_update(phase: RunPhase) -> dict[str, str]:
 
 
 def merge_timeline_step(state: ResearchRunState) -> Command[Literal["generate_verdict"]]:
+    """Deduplicate events into a canonical timeline, then continue to verdict."""
     events = load_company_events(state["events"])
     timeline = merge_events_into_timeline(events)
     return Command(

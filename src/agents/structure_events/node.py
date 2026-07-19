@@ -1,3 +1,5 @@
+"""Graph node that structures raw findings into company events before merge."""
+
 from __future__ import annotations
 
 import json
@@ -50,6 +52,7 @@ def structure_events_step(
     state: ResearchRunState,
     config: RunnableConfig,
 ) -> Command[Literal["merge_timeline"]]:
+    """Turn raw findings into grounded company events, then continue to merge."""
     findings: list[RawFinding] = load_raw_findings(state["findings"])
     if not findings:
         return Command(

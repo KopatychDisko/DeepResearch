@@ -1,3 +1,5 @@
+"""Build evidence-backed employer verdicts from a canonical timeline."""
+
 from __future__ import annotations
 
 import json
@@ -32,6 +34,7 @@ _RISK_CATEGORIES: frozenset[EventCategory] = frozenset(
 
 
 def build_evidence_links(timeline: CanonicalTimeline) -> list[VerdictEvidenceLink]:
+    """Map each timeline event to a verdict evidence link with source URLs."""
     evidence_links: list[VerdictEvidenceLink] = []
     for event in timeline.events:
         evidence_links.append(
@@ -50,6 +53,7 @@ def build_red_flags_from_timeline(
     timeline: CanonicalTimeline,
     language: ResponseLanguage,
 ) -> list[str]:
+    """Collect layoffs and scandal red-flag lines from the timeline."""
     red_flags: list[str] = []
     seen_descriptions: set[str] = set()
     for event in timeline.events:
@@ -67,6 +71,7 @@ def build_risks_from_timeline(
     timeline: CanonicalTimeline,
     language: ResponseLanguage,
 ) -> list[str]:
+    """Collect leadership, review-signal, and date-conflict risk lines."""
     risks: list[str] = []
     seen_descriptions: set[str] = set()
     for event in timeline.events:
@@ -117,6 +122,7 @@ def build_insufficient_data_verdict(
     company_name: str,
     language: ResponseLanguage,
 ) -> EmployerVerdict:
+    """Return a yellow mid-score verdict when the timeline has no events."""
     return EmployerVerdict(
         color=VerdictColor.YELLOW,
         score=5,
@@ -135,6 +141,7 @@ def generate_employer_verdict(
     language: ResponseLanguage,
     config: RunnableConfig,
 ) -> EmployerVerdict:
+    """Generate a structured employer verdict grounded in the timeline."""
     if not timeline.events:
         return build_insufficient_data_verdict(company_name=company_name, language=language)
 

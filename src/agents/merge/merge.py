@@ -1,3 +1,5 @@
+"""Cluster, conflict-detect, and sort company events into a canonical timeline."""
+
 from __future__ import annotations
 
 import re
@@ -251,6 +253,7 @@ def _sort_timeline_events(events: list[CanonicalTimelineEvent]) -> list[Canonica
 
 
 def merge_events_into_timeline(events: list[CompanyEvent]) -> CanonicalTimeline:
+    """Merge similar events into a dated canonical timeline with conflict notes."""
     clusters: dict[str, list[CompanyEvent]] = {}
     cluster_order: list[str] = []
 
