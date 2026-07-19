@@ -135,6 +135,11 @@ def create_app() -> FastAPI:
     def get_run_status(run_id: UUID) -> RunStatusResponse:
         try:
             return get_research_run_status(run_id=run_id)
+        except KeyError as error:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Run state is not ready yet (missing {error}). Retry shortly.",
+            ) from error
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 

@@ -25,24 +25,33 @@ export function App() {
   const [runStatus, setRunStatus] = useState<RunStatusResponse | null>(null);
   const [result, setResult] = useState<RunViewModel | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
-  const pollAbortRef = useRef<boolean>(false);
+  const pollGenerationRef = useRef<number>(0);
 
-  async function pollUntilComplete(runId: string): Promise<void> {
-    pollAbortRef.current = false;
+  async function pollUntilComplete(
+    runId: string,
+    stopOnAwaitingInput: boolean,
+  ): Promise<void> {
+    const generation: number = pollGenerationRef.current;
     activeRunIdRef.current = runId;
 
-    while (!pollAbortRef.current) {
+    while (pollGenerationRef.current === generation) {
       const status: RunStatusResponse = await fetchRunStatus(runId);
+      if (pollGenerationRef.current !== generation) {
+        return;
+      }
       setRunStatus(status);
 
       if (status.status === "failed") {
         throw new Error(status.error_message ?? t.errorRunFailed);
       }
       if (status.status === "awaiting_input") {
-        setIsLoading(false);
-        return;
-      }
-      if (status.status === "completed") {
+        if (stopOnAwaitingInput) {
+          setIsLoading(false);
+          return;
+        }
+        // After identity confirm, keep polling until running/completed —
+        // a stale awaiting_input must not freeze the UI.
+      } else if (status.status === "completed") {
         if (status.result === null) {
           throw new Error(t.errorNoResult);
         }
@@ -67,12 +76,15 @@ export function App() {
     if (trimmedName.length < 2) {
       return;
     }
+    // Invalidate any in-flight poll from a previous run (second analysis).
+    pollGenerationRef.current += 1;
+    const submitGeneration: number = pollGenerationRef.current;
     setIsLoading(true);
     setIsConfirmingIdentity(false);
     setErrorMessage(null);
     setRunStatus(null);
     setResult(null);
-    pollAbortRef.current = true;
+    activeRunIdRef.current = null;
 
     try {
       const startedRun = await startBackgroundRun({
@@ -81,8 +93,11 @@ export function App() {
         companyDescription: companyDescription.trim(),
         responseLanguage: locale,
       });
-      await pollUntilComplete(startedRun.run_id);
+      await pollUntilComplete(startedRun.run_id, true);
     } catch (error: unknown) {
+      if (pollGenerationRef.current !== submitGeneration) {
+        return;
+      }
       const message: string =
         error instanceof Error ? error.message : t.errorAnalysisFailed;
       setErrorMessage(message);
@@ -100,9 +115,20 @@ export function App() {
     setErrorMessage(null);
     try {
       await confirmRunIdentity(runId, candidateId);
-      pollAbortRef.current = false;
       setIsLoading(true);
-      await pollUntilComplete(runId);
+      setRunStatus((previous: RunStatusResponse | null) => {
+        if (previous === null) {
+          return previous;
+        }
+        return {
+          ...previous,
+          status: "running",
+          phase: "supervisor",
+          identity_candidates: [],
+          error_message: null,
+        };
+      });
+      await pollUntilComplete(runId, false);
     } catch (error: unknown) {
       const message: string =
         error instanceof Error ? error.message : t.errorConfirmFailed;

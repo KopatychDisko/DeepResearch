@@ -79,6 +79,18 @@ class RunExecutionContext:
 _run_lock: threading.Lock = threading.Lock()
 _run_status_by_id: dict[UUID, RunLifecycleStatus] = {}
 _run_errors_by_id: dict[UUID, str] = {}
+_run_company_name_by_id: dict[UUID, str] = {}
+
+_STATUS_REQUIRED_KEYS: tuple[str, ...] = (
+    "identity",
+    "findings",
+    "events",
+    "timeline",
+    "verdict",
+    "completed_sources",
+    "request",
+    "iteration_count",
+)
 
 
 @contextmanager
@@ -108,6 +120,18 @@ def _set_run_status(run_id: UUID, status: RunLifecycleStatus, error_message: str
             _run_errors_by_id.pop(run_id, None)
         else:
             _run_errors_by_id[run_id] = error_message
+
+
+def _register_run_metadata(run_id: UUID, company_name: str) -> None:
+    with _run_lock:
+        _run_company_name_by_id[run_id] = company_name
+        _run_status_by_id[run_id] = RunLifecycleStatus.RUNNING
+        _run_errors_by_id.pop(run_id, None)
+
+
+def _get_run_company_name(run_id: UUID) -> str:
+    with _run_lock:
+        return _run_company_name_by_id.get(run_id, "")
 
 
 def _get_run_status(run_id: UUID) -> RunLifecycleStatus | None:
@@ -251,13 +275,23 @@ def _state_to_result(state: ResearchRunState) -> ResearchRunResult:
 
 
 def _phase_from_state(state: ResearchRunState) -> RunPhase:
-    phase_value: str = state.get("phase", RunPhase.PENDING.value)
-    return RunPhase(phase_value)
+    phase_value: object = state.get("phase", RunPhase.PENDING.value)
+    if not isinstance(phase_value, str) or phase_value.strip() == "":
+        return RunPhase.PENDING
+    try:
+        return RunPhase(phase_value)
+    except ValueError:
+        return RunPhase.PENDING
 
 
 def _status_from_state(state: ResearchRunState) -> RunLifecycleStatus:
-    status_value: str = state.get("status", RunLifecycleStatus.RUNNING.value)
-    return RunLifecycleStatus(status_value)
+    status_value: object = state.get("status", RunLifecycleStatus.RUNNING.value)
+    if not isinstance(status_value, str) or status_value.strip() == "":
+        return RunLifecycleStatus.RUNNING
+    try:
+        return RunLifecycleStatus(status_value)
+    except ValueError:
+        return RunLifecycleStatus.RUNNING
 
 
 def _graph_resume_input(
@@ -303,11 +337,39 @@ def _finalize_graph_run(
     return _state_to_result(state=final_state)
 
 
+def _checkpoint_ready_for_status(state: dict[str, object]) -> bool:
+    return all(key in state for key in _STATUS_REQUIRED_KEYS)
+
+
+def _tracked_status_response(run_id: UUID) -> RunStatusResponse:
+    tracked_status: RunLifecycleStatus | None = _get_run_status(run_id=run_id)
+    if tracked_status is None:
+        raise LookupError(f"Run not found: {run_id}")
+    return RunStatusResponse(
+        run_id=run_id,
+        created_at=utc_now(),
+        status=tracked_status,
+        phase=RunPhase.PENDING,
+        company_name=_get_run_company_name(run_id=run_id),
+        completed_sources=[],
+        findings_count=0,
+        events_count=0,
+        iteration_count=0,
+        error_message=_get_run_error(run_id=run_id),
+        identity_candidates=[],
+        result=None,
+    )
+
+
 def _build_status_response(
     run_id: UUID,
     state: ResearchRunState,
     next_nodes: tuple[str, ...],
 ) -> RunStatusResponse:
+    _ = next_nodes
+    if not _checkpoint_ready_for_status(state=dict(state)):
+        return _tracked_status_response(run_id=run_id)
+
     phase: RunPhase = _phase_from_state(state=state)
     status: RunLifecycleStatus = _status_from_state(state=state)
     result: ResearchRunResult | None = None
@@ -326,7 +388,7 @@ def _build_status_response(
         completed_sources=completed_sources,
         findings_count=len(state["findings"]),
         events_count=len(state["events"]),
-        iteration_count=state["iteration_count"],
+        iteration_count=int(state["iteration_count"]),
         error_message=state.get("error_message"),
         identity_candidates=identity_candidates,
         result=result,
@@ -477,81 +539,27 @@ def confirm_company_identity_selection(run_id: UUID, candidate_id: str) -> RunRe
     return request
 
 
-def _confirm_and_resume_research(
-    settings: Configuration,
-    run_id: UUID,
-    candidate_id: str,
-) -> ResearchRunResult:
-    require_tavily_api_key()
-    request: RunRequest = confirm_company_identity_selection(
-        run_id=run_id,
-        candidate_id=candidate_id,
-    )
-
-    with _compiled_research_graph(settings=settings) as compiled_graph:
-        checkpointer_context: RunExecutionContext = _build_checkpointer_context(
-            settings=settings,
-            run_id=run_id,
-        )
-        state_snapshot = compiled_graph.get_state(config=checkpointer_context.run_config)
-        if state_snapshot.values is None or not state_snapshot.values:
-            raise LookupError(f"Run not found: {run_id}")
-        resume_input: Command[Literal["supervisor"]] | None = _graph_resume_input(
-            state=state_snapshot.values,
-            next_nodes=tuple(state_snapshot.next or ()),
-        )
-
-        with trace_research_run(run_id=run_id, request=request) as langfuse_handler:
-            execution_context: RunExecutionContext = _build_run_execution_context(
-                settings=settings,
-                run_id=run_id,
-                request=request,
-                langfuse_handler=langfuse_handler,
-            )
-            final_state: ResearchRunState = compiled_graph.invoke(
-                resume_input,
-                config=execution_context.run_config,
-            )
-
-    result: ResearchRunResult | None = _finalize_graph_run(
-        run_id=run_id,
-        final_state=final_state,
-    )
-    if result is not None:
-        return result
-
-    final_status: RunLifecycleStatus = _status_from_state(state=final_state)
-    if final_status == RunLifecycleStatus.AWAITING_INPUT:
-        raise RuntimeError(
-            "Identity was confirmed but research did not resume. "
-            f"Poll GET /runs/{run_id} and retry POST /runs/{run_id}/identity."
-        )
-    if final_status == RunLifecycleStatus.RUNNING:
-        raise RuntimeError("Research stopped before completion after identity confirmation.")
-    error_message: str | None = _get_run_error(run_id=run_id)
-    raise RuntimeError(error_message or "Research did not produce a result after identity confirmation.")
-
-
 def confirm_and_continue_research_run_background(
     run_id: UUID,
     candidate_id: str,
     on_complete: Callable[[UUID, ResearchRunResult | None, str | None], None],
 ) -> None:
-    """Confirm identity in a daemon thread, then resume research and invoke on_complete."""
-    settings = Configuration()
+    """Confirm identity synchronously, then resume research on a daemon thread.
+
+    Confirmation must finish before the HTTP handler returns so the next GET /runs
+    poll sees RUNNING — otherwise the UI treats a stale awaiting_input as a stop
+    and freezes on the identity picker.
+    """
+    confirm_company_identity_selection(run_id=run_id, candidate_id=candidate_id)
 
     def _background_worker() -> None:
         try:
-            result: ResearchRunResult = _confirm_and_resume_research(
-                settings=settings,
-                run_id=run_id,
-                candidate_id=candidate_id,
-            )
+            result: ResearchRunResult = resume_research_run(run_id=run_id)
             on_complete(run_id, result, None)
         except Exception as error:
             _fail_background_run(run_id=run_id, error=error, on_complete=on_complete)
 
-    # HTTP returns immediately; research continues on this daemon thread.
+    # Identity is already confirmed; research continues on this daemon thread.
     _launch_background_thread(
         thread_name=f"research-run-confirm-{run_id}",
         target=_background_worker,
@@ -601,24 +609,10 @@ def get_research_run_status(run_id: UUID) -> RunStatusResponse:
     with _compiled_research_graph(settings=settings) as compiled_graph:
         state_snapshot = compiled_graph.get_state(config=execution_context.run_config)
         if state_snapshot.values is None or not state_snapshot.values:
-            tracked_status: RunLifecycleStatus | None = _get_run_status(run_id=run_id)
-            if tracked_status is None:
-                raise LookupError(f"Run not found: {run_id}")
-            return RunStatusResponse(
-                run_id=run_id,
-                created_at=utc_now(),
-                status=tracked_status,
-                phase=RunPhase.PENDING,
-                company_name="",
-                completed_sources=[],
-                findings_count=0,
-                events_count=0,
-                iteration_count=0,
-                error_message=_get_run_error(run_id=run_id),
-                identity_candidates=[],
-                result=None,
-            )
+            return _tracked_status_response(run_id=run_id)
         state: ResearchRunState = state_snapshot.values
+        if not _checkpoint_ready_for_status(state=dict(state)):
+            return _tracked_status_response(run_id=run_id)
         next_nodes: tuple[str, ...] = tuple(state_snapshot.next or ())
         return _build_status_response(
             run_id=run_id,
@@ -643,6 +637,8 @@ def start_research_run_background(
         request=request,
         run_id=selected_run_id,
     )
+    # Register before the worker starts so the first poll never races on missing channels.
+    _register_run_metadata(run_id=selected_run_id, company_name=request.company_name)
 
     def _background_worker() -> None:
         try:

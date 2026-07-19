@@ -9,7 +9,23 @@ export interface StartRunPayload {
 
 async function readError(response: Response): Promise<string> {
   const errorText: string = await response.text();
-  return errorText || `Request failed with status ${response.status}`;
+  if (errorText.length === 0) {
+    return `Request failed with status ${response.status}`;
+  }
+  try {
+    const parsed: unknown = JSON.parse(errorText);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "detail" in parsed &&
+      typeof (parsed as { detail: unknown }).detail === "string"
+    ) {
+      return (parsed as { detail: string }).detail;
+    }
+  } catch {
+    // keep raw body
+  }
+  return errorText;
 }
 
 function buildRunRequestBody(payload: StartRunPayload): {
