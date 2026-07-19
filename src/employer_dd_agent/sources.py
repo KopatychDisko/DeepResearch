@@ -28,7 +28,7 @@ def _source_query(source_type: SourceType, identity: CompanyIdentity) -> str:
     if identity.user_description is not None:
         description_part = f" {identity.user_description}"
     if identity.company_url is not None:
-        from employer_dd_agent.identity import normalize_host
+        from agents.identity.resolution import normalize_host
 
         host: str = normalize_host(str(identity.company_url))
         return f"{identity.canonical_name}{description_part} site:{host} {topic} ru"

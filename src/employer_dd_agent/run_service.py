@@ -37,7 +37,7 @@ from agents.graph_state import (
     load_raw_findings,
     load_run_request,
 )
-from employer_dd_agent.identity import (
+from agents.identity.resolution import (
     candidate_to_identity,
     find_candidate_by_id,
     normalize_company_name,
@@ -62,7 +62,7 @@ from employer_dd_agent.runtime_requirements import (
     ensure_checkpointer_directory,
     require_tavily_api_key,
 )
-from employer_dd_agent.verdict import build_insufficient_data_verdict
+from agents.verdict.verdict import build_insufficient_data_verdict
 
 
 @dataclass(frozen=True)

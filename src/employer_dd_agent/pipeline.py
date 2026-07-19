@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Literal
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -12,42 +11,29 @@ from langgraph.types import Command
 from agents.configuration import Configuration
 from agents.graph_state import (
     ResearchRunState,
-    dump_canonical_timeline,
-    dump_company_candidates,
-    dump_company_events,
-    dump_company_identity,
     dump_completed_sources,
-    dump_employer_verdict,
     dump_raw_findings,
-    load_canonical_timeline,
-    load_company_events,
     load_company_identity,
     load_completed_sources,
     load_raw_findings,
     load_run_request,
 )
-from agents.language import response_language_instruction
-from employer_dd_agent.identity import (
-    IdentityResolutionStatus,
-    resolve_company_identity_from_web,
-)
+from agents.identity.node import resolve_identity_step
 from agents.llm_service import create_llm_with_tools
-from employer_dd_agent.merge import merge_events_into_timeline
+from agents.merge.node import merge_timeline_step
 from agents.models import (
-    CompanyEvent,
     CompanyIdentity,
     RawFinding,
     RunLifecycleStatus,
     RunPhase,
     ResponseLanguage,
     SourceType,
-    StructuredCompanyEvents,
 )
 from agents.observability import trace_source_research
-from agents.prompts import STRUCTURE_EVENTS_PROMPT, SUPERVISOR_PROMPT
+from agents.prompts import SUPERVISOR_PROMPT
+from agents.structure_events.node import structure_events_step
+from agents.verdict.node import generate_verdict_step
 from employer_dd_agent.sources import fetch_hh, fetch_news, fetch_reviews
-from agents.structured_output import invoke_structured_output
-from employer_dd_agent.verdict import generate_employer_verdict
 
 
 @tool
@@ -93,64 +79,6 @@ def _should_skip_identity_resolution(state: ResearchRunState) -> bool:
         return False
     identity_candidates = state.get("identity_candidates", [])
     return not identity_candidates
-
-
-def resolve_identity_step(
-    state: ResearchRunState,
-    config: RunnableConfig,
-) -> Command[Literal["supervisor", "__end__"]]:
-    if _should_skip_identity_resolution(state=state):
-        return Command(
-            goto="supervisor",
-            update=_phase_update(RunPhase.SUPERVISOR),
-        )
-
-    settings: Configuration = Configuration.from_runnable_config(config)
-    request = load_run_request(state["request"])
-    resolution = resolve_company_identity_from_web(
-        company_name=request.company_name,
-        company_url=request.company_url,
-        company_description=request.company_description,
-        response_language=request.response_language,
-        config=config,
-        settings=settings,
-    )
-
-    if resolution.status == IdentityResolutionStatus.NOT_FOUND:
-        return Command(
-            goto="__end__",
-            update={
-                "status": RunLifecycleStatus.FAILED.value,
-                "phase": RunPhase.AWAITING_IDENTITY.value,
-                "error_message": resolution.message,
-                "identity_candidates": [],
-                **_phase_update(RunPhase.RESOLVE_IDENTITY),
-            },
-        )
-
-    if resolution.status == IdentityResolutionStatus.AMBIGUOUS:
-        return Command(
-            goto="__end__",
-            update={
-                "status": RunLifecycleStatus.AWAITING_INPUT.value,
-                "phase": RunPhase.AWAITING_IDENTITY.value,
-                "error_message": resolution.message,
-                "identity_candidates": dump_company_candidates(resolution.candidates),
-                **_phase_update(RunPhase.AWAITING_IDENTITY),
-            },
-        )
-
-    if resolution.identity is None:
-        raise RuntimeError("Confirmed identity resolution returned no identity")
-
-    return Command(
-        goto="supervisor",
-        update={
-            "identity": dump_company_identity(resolution.identity),
-            "identity_candidates": dump_company_candidates(resolution.candidates),
-            **_phase_update(RunPhase.RESOLVE_IDENTITY),
-        },
-    )
 
 
 def _completed_sources_text(completed_sources: list[SourceType]) -> str:
@@ -349,103 +277,6 @@ def supervisor_tools_step(
             "completed_sources": dump_completed_sources(updated_sources),
             "conversation_history": updated_history,
             "finished": finish_requested,
-        },
-    )
-
-
-def _truncate_text(text: str, max_length: int) -> str:
-    if len(text) <= max_length:
-        return text
-    return f"{text[:max_length]}…"
-
-
-def _findings_text(findings: list[RawFinding]) -> str:
-    max_findings: int = 20
-    max_snippet_length: int = 600
-    selected_findings: list[RawFinding] = findings[:max_findings]
-    serialized_findings: list[dict[str, str]] = []
-    for finding in selected_findings:
-        serialized_findings.append(
-            {
-                "source_type": finding.source_type.value,
-                "source_url": str(finding.source_url),
-                "title": _truncate_text(finding.title, 200),
-                "snippet": _truncate_text(finding.snippet, max_snippet_length),
-            }
-        )
-    return json.dumps(serialized_findings, ensure_ascii=False, indent=2)
-
-
-def structure_events_step(
-    state: ResearchRunState,
-    config: RunnableConfig,
-) -> Command[Literal["merge_timeline"]]:
-    findings: list[RawFinding] = load_raw_findings(state["findings"])
-    if not findings:
-        return Command(
-            goto="merge_timeline",
-            update={"events": [], **_phase_update(RunPhase.STRUCTURE_EVENTS)},
-        )
-
-    identity: CompanyIdentity = load_company_identity(state["identity"])
-    request = load_run_request(state["request"])
-    parsed_output = invoke_structured_output(
-        config=config,
-        model_class=StructuredCompanyEvents,
-        prompt=STRUCTURE_EVENTS_PROMPT.format(
-            company_name=identity.canonical_name,
-            findings_text=_findings_text(findings),
-            response_language_instruction=response_language_instruction(
-                language=request.response_language
-            ),
-        ),
-    )
-
-    allowed_urls: set[str] = {str(finding.source_url) for finding in findings}
-    filtered_events: list[CompanyEvent] = []
-    for event in parsed_output.events:
-        if str(event.source_url) in allowed_urls:
-            filtered_events.append(event)
-    return Command(
-        goto="merge_timeline",
-        update={
-            "events": dump_company_events(filtered_events),
-            **_phase_update(RunPhase.STRUCTURE_EVENTS),
-        },
-    )
-
-
-def merge_timeline_step(state: ResearchRunState) -> Command[Literal["generate_verdict"]]:
-    events = load_company_events(state["events"])
-    timeline = merge_events_into_timeline(events)
-    return Command(
-        goto="generate_verdict",
-        update={
-            "timeline": dump_canonical_timeline(timeline),
-            **_phase_update(RunPhase.MERGE_TIMELINE),
-        },
-    )
-
-
-def generate_verdict_step(
-    state: ResearchRunState,
-    config: RunnableConfig,
-) -> Command[Literal["__end__"]]:
-    identity: CompanyIdentity = load_company_identity(state["identity"])
-    request = load_run_request(state["request"])
-    timeline = load_canonical_timeline(state["timeline"])
-    verdict = generate_employer_verdict(
-        company_name=identity.canonical_name,
-        timeline=timeline,
-        language=request.response_language,
-        config=config,
-    )
-    return Command(
-        goto="__end__",
-        update={
-            "verdict": dump_employer_verdict(verdict),
-            "status": RunLifecycleStatus.COMPLETED.value,
-            **_phase_update(RunPhase.GENERATE_VERDICT),
         },
     )
 
