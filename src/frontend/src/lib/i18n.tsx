@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { EventCategory } from "../types";
 
 export type Locale = "ru" | "en";
 
@@ -63,6 +64,15 @@ export interface Translations {
   sourceReviews: string;
   sourceHh: string;
   linksCount: string;
+  evidenceTitle: string;
+  evidenceEmpty: string;
+  timelineDateUnknown: string;
+  categoryFunding: string;
+  categoryLeadership: string;
+  categoryLayoffs: string;
+  categoryScandal: string;
+  categoryProduct: string;
+  categoryReviewSignal: string;
 }
 
 const translations: Record<Locale, Translations> = {
@@ -128,6 +138,15 @@ const translations: Record<Locale, Translations> = {
     sourceReviews: "Отзывы",
     sourceHh: "HeadHunter",
     linksCount: "ссылок",
+    evidenceTitle: "Источники вердикта",
+    evidenceEmpty: "Нет привязанных источников для вердикта.",
+    timelineDateUnknown: "дата неизвестна",
+    categoryFunding: "Финансы",
+    categoryLeadership: "Руководство",
+    categoryLayoffs: "Сокращения",
+    categoryScandal: "Скандал",
+    categoryProduct: "Продукт",
+    categoryReviewSignal: "Отзывы",
   },
   en: {
     headerBadge: "Employer DD",
@@ -190,6 +209,15 @@ const translations: Record<Locale, Translations> = {
     sourceReviews: "Reviews",
     sourceHh: "HeadHunter",
     linksCount: "links",
+    evidenceTitle: "Verdict evidence",
+    evidenceEmpty: "No linked sources for this verdict.",
+    timelineDateUnknown: "date unknown",
+    categoryFunding: "Funding",
+    categoryLeadership: "Leadership",
+    categoryLayoffs: "Layoffs",
+    categoryScandal: "Scandal",
+    categoryProduct: "Product",
+    categoryReviewSignal: "Reviews",
   },
 };
 
@@ -256,4 +284,23 @@ export function scoreLabel(score: number, t: Translations): string {
     return t.scoreConcerns;
   }
   return t.scoreHighRisk;
+}
+
+export function categoryLabel(category: EventCategory, t: Translations): string {
+  if (category === "funding") {
+    return t.categoryFunding;
+  }
+  if (category === "leadership") {
+    return t.categoryLeadership;
+  }
+  if (category === "layoffs") {
+    return t.categoryLayoffs;
+  }
+  if (category === "scandal") {
+    return t.categoryScandal;
+  }
+  if (category === "product") {
+    return t.categoryProduct;
+  }
+  return t.categoryReviewSignal;
 }

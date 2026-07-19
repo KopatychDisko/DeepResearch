@@ -1,3 +1,4 @@
+import { displayHost } from "../lib/displayHost";
 import { useLanguage } from "../lib/i18n";
 import type { RawFinding, SourceType } from "../types";
 
@@ -13,14 +14,6 @@ function groupBySource(findings: RawFinding[]): Map<SourceType, RawFinding[]> {
     groups.set(finding.source_type, existing);
   }
   return groups;
-}
-
-function displayHost(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
 }
 
 export function SourceLinksPanel({ findings }: SourceLinksPanelProps) {
