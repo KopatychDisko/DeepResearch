@@ -1,3 +1,5 @@
+"""Research run lifecycle: start, resume, identity confirm, status, and background workers."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -67,6 +69,8 @@ from agents.verdict.verdict import build_insufficient_data_verdict
 
 @dataclass(frozen=True)
 class RunExecutionContext:
+    """RunnableConfig plus thread id for one research run against the checkpointer."""
+
     run_id: UUID
     thread_id: str
     run_config: RunnableConfig
@@ -117,6 +121,7 @@ def _get_run_error(run_id: UUID) -> str | None:
 
 
 def build_initial_state(request: RunRequest, run_id: UUID) -> ResearchRunState:
+    """Build the initial ResearchRunState with a placeholder identity and empty findings."""
     placeholder_identity = CompanyIdentity(
         query_name=request.company_name,
         canonical_name=request.company_name,
@@ -261,6 +266,7 @@ def _graph_resume_input(
 ) -> Command[Literal["supervisor"]] | None:
     if next_nodes:
         return None
+    # No pending nodes: skip identity interrupt and resume directly into supervisor.
     if _should_skip_identity_resolution(state=state):
         return Command(goto="supervisor")
     return None
@@ -360,6 +366,7 @@ def _execute_graph(
                 langfuse_handler=langfuse_handler,
             )
             if initial_state is None:
+                # resume_input is None to continue pending nodes, or Command(goto=supervisor).
                 final_state: ResearchRunState = compiled_graph.invoke(
                     resume_input,
                     config=execution_context.run_config,
@@ -374,6 +381,7 @@ def _execute_graph(
 
 
 def run_research_pipeline(request: RunRequest, run_id: UUID | None) -> tuple[UUID, ResearchRunResult]:
+    """Run the research graph to completion synchronously and return the run id plus result."""
     settings = Configuration()
     selected_run_id: UUID = run_id if run_id is not None else uuid4()
     initial_state: ResearchRunState = build_initial_state(
@@ -398,6 +406,7 @@ def run_research_pipeline(request: RunRequest, run_id: UUID | None) -> tuple[UUI
 
 
 def resume_research_run(run_id: UUID) -> ResearchRunResult:
+    """Resume a checkpointed run to completion and return the final ResearchRunResult."""
     settings = Configuration()
     result: ResearchRunResult | None = _execute_graph(
         settings=settings,
@@ -425,6 +434,7 @@ def _load_checkpoint_state(run_id: UUID) -> tuple[Configuration, RunExecutionCon
 
 
 def validate_identity_confirmation_request(run_id: UUID, candidate_id: str) -> None:
+    """Ensure the run awaits identity input and that candidate_id exists among candidates."""
     _settings, _execution_context, state = _load_checkpoint_state(run_id=run_id)
     _require_awaiting_identity_confirmation(state=state, run_id=run_id)
     candidates = load_company_candidates(state.get("identity_candidates", []))
@@ -435,6 +445,7 @@ def validate_identity_confirmation_request(run_id: UUID, candidate_id: str) -> N
 
 
 def confirm_company_identity_selection(run_id: UUID, candidate_id: str) -> RunRequest:
+    """Persist the selected candidate as identity and clear the awaiting-input interrupt."""
     settings, execution_context, state = _load_checkpoint_state(run_id=run_id)
     _require_awaiting_identity_confirmation(state=state, run_id=run_id)
 
@@ -526,6 +537,7 @@ def confirm_and_continue_research_run_background(
     candidate_id: str,
     on_complete: Callable[[UUID, ResearchRunResult | None, str | None], None],
 ) -> None:
+    """Confirm identity in a daemon thread, then resume research and invoke on_complete."""
     settings = Configuration()
 
     def _background_worker() -> None:
@@ -539,6 +551,7 @@ def confirm_and_continue_research_run_background(
         except Exception as error:
             _fail_background_run(run_id=run_id, error=error, on_complete=on_complete)
 
+    # HTTP returns immediately; research continues on this daemon thread.
     _launch_background_thread(
         thread_name=f"research-run-confirm-{run_id}",
         target=_background_worker,
@@ -549,6 +562,7 @@ def continue_research_run_background(
     run_id: UUID,
     on_complete: Callable[[UUID, ResearchRunResult | None, str | None], None],
 ) -> None:
+    """Resume a checkpointed run on a daemon thread and invoke on_complete when finished."""
     settings = Configuration()
 
     def _background_worker() -> None:
@@ -577,6 +591,7 @@ def continue_research_run_background(
 
 
 def get_research_run_status(run_id: UUID) -> RunStatusResponse:
+    """Load checkpoint state for a run and return the current lifecycle status response."""
     settings = Configuration()
     execution_context: RunExecutionContext = _build_checkpointer_context(
         settings=settings,
@@ -617,6 +632,7 @@ def start_research_run_background(
     run_id: UUID | None,
     on_complete: Callable[[UUID, ResearchRunResult | None, str | None], None],
 ) -> UUID:
+    """Start a research run on a daemon thread and return the assigned run id immediately."""
     credentials = load_model_credentials()
     require_model_credentials(credentials=credentials)
     require_tavily_api_key()
@@ -643,6 +659,7 @@ def start_research_run_background(
                 on_complete=on_complete,
             )
 
+    # Caller polls GET /runs/{id}; this thread owns graph invoke side effects.
     _launch_background_thread(
         thread_name=f"research-run-{selected_run_id}",
         target=_background_worker,

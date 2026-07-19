@@ -1,3 +1,5 @@
+"""FastAPI app factory for research run HTTP routes and optional static frontend."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -59,6 +61,7 @@ def _build_run_response(run_id: UUID, result: ResearchRunResult) -> RunResponse:
 
 
 def create_app() -> FastAPI:
+    """Build the FastAPI app with CORS, run routes, and optional frontend static mount."""
     app: FastAPI = FastAPI(title="Employer Due Diligence Agent API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,

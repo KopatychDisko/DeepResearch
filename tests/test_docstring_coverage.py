@@ -34,6 +34,12 @@ REQUIRED_DOC_FILES: tuple[str, ...] = (
     "src/agents/llm_service.py",
     "src/agents/model_credentials.py",
     "src/agents/structured_output.py",
+    "src/backend/api.py",
+    "src/backend/main.py",
+    "src/backend/paths.py",
+    "src/backend/run_service.py",
+    "src/backend/runtime_requirements.py",
+    "src/backend/serve.py",
 )
 
 

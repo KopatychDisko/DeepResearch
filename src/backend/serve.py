@@ -1,3 +1,5 @@
+"""Local server entrypoint that builds the frontend and serves the FastAPI app."""
+
 from __future__ import annotations
 
 import os
@@ -79,6 +81,7 @@ def _schedule_browser_open(host: str, port: int, url: str) -> None:
 
 
 def main() -> None:
+    """Build the frontend, open a browser when healthy, and run uvicorn on localhost:8000."""
     host: str = "127.0.0.1"
     port: int = 8000
     url: str = f"http://{host}:{port}"
