@@ -1,4 +1,5 @@
-import { scoreLabel, useLanguage } from "../lib/i18n";
+import { displayHost } from "../lib/displayHost";
+import { categoryLabel, scoreLabel, useLanguage } from "../lib/i18n";
 import type { EmployerVerdict, VerdictColor } from "../types";
 
 interface VerdictCardProps {
@@ -106,6 +107,36 @@ export function VerdictCard({ verdict, companyName }: VerdictCardProps) {
           </ul>
         </section>
       ) : null}
+
+      <section className="insight-section evidence">
+        <h3>{t.evidenceTitle}</h3>
+        {verdict.evidence_links.length > 0 ? (
+          <ul className="evidence-list">
+            {verdict.evidence_links.map((link) => (
+              <li
+                key={`${link.event_description}-${link.date ?? "none"}`}
+                className="evidence-item"
+              >
+                <p>{link.event_description}</p>
+                <div className="timeline-meta">
+                  <span className="badge">{categoryLabel(link.category, t)}</span>
+                  <span className="badge">{link.confidence}</span>
+                  <span>{link.date ?? t.timelineDateUnknown}</span>
+                </div>
+                <div className="evidence-links">
+                  {link.source_urls.map((url) => (
+                    <a key={url} href={url} target="_blank" rel="noreferrer">
+                      {displayHost(url)}
+                    </a>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="empty-state">{t.evidenceEmpty}</p>
+        )}
+      </section>
     </article>
   );
 }
