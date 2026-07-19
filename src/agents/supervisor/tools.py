@@ -1,3 +1,5 @@
+"""LangChain tool schemas the supervisor model may call during research."""
+
 from __future__ import annotations
 
 from langchain_core.tools import tool

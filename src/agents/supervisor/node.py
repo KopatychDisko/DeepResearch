@@ -1,3 +1,5 @@
+"""Supervisor research loop: budgets, model tool calls, and ToolObservation routing."""
+
 from __future__ import annotations
 
 import json
@@ -148,6 +150,7 @@ def supervisor_step(
     state: ResearchRunState,
     config: RunnableConfig,
 ) -> Command[Literal["supervisor_tools", "structure_events"]]:
+    """Run one supervisor model turn or stop the loop when a budget is exhausted."""
     settings: Configuration = Configuration.from_runnable_config(config)
     if state["finished"]:
         return Command(goto="structure_events")
@@ -159,6 +162,7 @@ def supervisor_step(
         deadline = now + float(settings.max_run_wall_clock_seconds)
         budget_state_update["budget_deadline_unix"] = deadline
 
+    # Stop research and hand off to structure_events when any budget is exhausted.
     if state["iteration_count"] >= settings.max_tool_iterations:
         return _budget_stop_command(
             budget_stop_reason="max_tool_iterations",
@@ -284,6 +288,7 @@ def supervisor_tools_step(
     state: ResearchRunState,
     config: RunnableConfig,
 ) -> Command[Literal["supervisor", "structure_events"]]:
+    """Authorize and execute tool calls, then loop back or hand off to structure_events."""
     settings: Configuration = Configuration.from_runnable_config(config)
     deadline: float | None = state.get("budget_deadline_unix")
     if deadline is not None and time.time() >= float(deadline):
@@ -318,6 +323,7 @@ def supervisor_tools_step(
         if not isinstance(tool_args_value, dict):
             tool_args_value = {}
 
+        # Deny before side effects; unknown tools never raise — they emit a denied observation.
         authorization = authorize_tool(tool_name)
         if not authorization.allowed:
             updated_history.append(

@@ -1,3 +1,5 @@
+"""Assemble the LangGraph research topology from identity through verdict."""
+
 from __future__ import annotations
 
 from langgraph.graph import START, StateGraph
@@ -19,6 +21,7 @@ __all__ = [
 
 
 def build_research_graph() -> StateGraph:
+    """Wire identity → supervisor loop → structure_events → merge → verdict nodes."""
     graph: StateGraph = StateGraph(ResearchRunState)
     graph.add_node("resolve_identity", resolve_identity_step)
     graph.add_node("supervisor", supervisor_step)
