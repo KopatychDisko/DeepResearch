@@ -18,6 +18,8 @@ Rules:
 Already completed source tools: {completed_sources}
 Current findings count: {findings_count}
 Company context from user: {company_context}
+Recent tool outcomes:
+{recent_tool_outcomes}
 """
 
 

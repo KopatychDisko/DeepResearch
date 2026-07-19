@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Literal
 
+import tiktoken
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
@@ -27,7 +29,7 @@ from agents.models import (
     ToolObservation,
     ToolObservationStatus,
 )
-from agents.observability import trace_source_research
+from agents.observability import record_budget_stop_reason, trace_source_research
 from agents.prompts import SUPERVISOR_PROMPT
 from agents.sources.hh import fetch_hh
 from agents.sources.news import fetch_news
@@ -40,6 +42,9 @@ from agents.supervisor.tools import (
     search_reviews,
     think,
 )
+
+_RECENT_TOOL_OUTCOMES_LIMIT: int = 3
+_TIKTOKEN_ENCODING_NAME: str = "cl100k_base"
 
 
 def _phase_update(phase: RunPhase) -> dict[str, str]:
@@ -73,6 +78,72 @@ def _company_context_text(identity: CompanyIdentity, language: ResponseLanguage)
     return " | ".join(context_parts)
 
 
+def _format_recent_tool_outcomes(
+    conversation_history: list[AIMessage | ToolMessage],
+    max_outcomes: int,
+) -> str:
+    tool_messages: list[ToolMessage] = [
+        message for message in conversation_history if isinstance(message, ToolMessage)
+    ]
+    if not tool_messages:
+        return "none"
+    recent_messages: list[ToolMessage] = tool_messages[-max_outcomes:]
+    lines: list[str] = []
+    for message in recent_messages:
+        payload: dict[str, object]
+        try:
+            parsed = json.loads(str(message.content))
+        except json.JSONDecodeError:
+            lines.append(f"- status=unknown tool={message.name or 'unknown'} summary={message.content}")
+            continue
+        if not isinstance(parsed, dict):
+            lines.append(f"- status=unknown tool={message.name or 'unknown'} summary={message.content}")
+            continue
+        payload = parsed
+        status_value = payload.get("status", "unknown")
+        tool_value = payload.get("tool", message.name or "unknown")
+        summary_value = payload.get("summary", "")
+        lines.append(f"- status={status_value} tool={tool_value} summary={summary_value}")
+    return "\n".join(lines)
+
+
+def _estimate_text_tokens(text: str) -> int:
+    encoding = tiktoken.get_encoding(_TIKTOKEN_ENCODING_NAME)
+    return len(encoding.encode(text))
+
+
+def _tokens_from_supervisor_turn(
+    response: AIMessage,
+    prompt_texts: list[str],
+) -> int:
+    usage_metadata = response.usage_metadata
+    if usage_metadata is not None:
+        total_tokens = usage_metadata.get("total_tokens")
+        if total_tokens is not None:
+            return int(total_tokens)
+        input_tokens = usage_metadata.get("input_tokens")
+        output_tokens = usage_metadata.get("output_tokens")
+        if input_tokens is not None and output_tokens is not None:
+            return int(input_tokens) + int(output_tokens)
+    prompt_token_count: int = sum(_estimate_text_tokens(text) for text in prompt_texts)
+    response_token_count: int = _estimate_text_tokens(str(response.content))
+    return prompt_token_count + response_token_count
+
+
+def _budget_stop_command(
+    budget_stop_reason: str,
+    extra_update: dict[str, object],
+) -> Command[Literal["structure_events"]]:
+    record_budget_stop_reason(budget_stop_reason=budget_stop_reason)
+    return Command(
+        goto="structure_events",
+        update={
+            **extra_update,
+            "budget_stop_reason": budget_stop_reason,
+        },
+    )
+
+
 def supervisor_step(
     state: ResearchRunState,
     config: RunnableConfig,
@@ -80,37 +151,70 @@ def supervisor_step(
     settings: Configuration = Configuration.from_runnable_config(config)
     if state["finished"]:
         return Command(goto="structure_events")
+
+    now: float = time.time()
+    deadline: float | None = state.get("budget_deadline_unix")
+    budget_state_update: dict[str, object] = {}
+    if deadline is None:
+        deadline = now + float(settings.max_run_wall_clock_seconds)
+        budget_state_update["budget_deadline_unix"] = deadline
+
     if state["iteration_count"] >= settings.max_tool_iterations:
-        return Command(goto="structure_events")
+        return _budget_stop_command(
+            budget_stop_reason="max_tool_iterations",
+            extra_update=budget_state_update,
+        )
+    if deadline is not None and now >= deadline:
+        return _budget_stop_command(
+            budget_stop_reason="wall_clock",
+            extra_update=budget_state_update,
+        )
+    estimated_tokens_used: int = int(state.get("estimated_tokens_used") or 0)
+    if estimated_tokens_used >= settings.max_estimated_run_tokens:
+        return _budget_stop_command(
+            budget_stop_reason="soft_token_budget",
+            extra_update=budget_state_update,
+        )
 
     identity: CompanyIdentity = load_company_identity(state["identity"])
     request = load_run_request(state["request"])
     completed_sources: list[SourceType] = load_completed_sources(state["completed_sources"])
     findings: list[RawFinding] = load_raw_findings(state["findings"])
+    recent_tool_outcomes: str = _format_recent_tool_outcomes(
+        conversation_history=state["conversation_history"],
+        max_outcomes=_RECENT_TOOL_OUTCOMES_LIMIT,
+    )
 
     tools = [search_news, search_reviews, search_hh, think, finish_research]
     tools_model = create_llm_with_tools(tools=tools, config=config)
-    system_message = SystemMessage(
-        content=SUPERVISOR_PROMPT.format(
-            company_name=identity.canonical_name,
-            completed_sources=_completed_sources_text(completed_sources),
-            findings_count=len(findings),
-            company_context=_company_context_text(
-                identity=identity,
-                language=request.response_language,
-            ),
-        )
+    system_prompt_text: str = SUPERVISOR_PROMPT.format(
+        company_name=identity.canonical_name,
+        completed_sources=_completed_sources_text(completed_sources),
+        findings_count=len(findings),
+        company_context=_company_context_text(
+            identity=identity,
+            language=request.response_language,
+        ),
+        recent_tool_outcomes=recent_tool_outcomes,
     )
-    user_message = HumanMessage(content="Choose the next research tool call.")
+    system_message = SystemMessage(content=system_prompt_text)
+    user_message_text: str = "Choose the next research tool call."
+    user_message = HumanMessage(content=user_message_text)
     response = tools_model.invoke([system_message, user_message])
     if not isinstance(response, AIMessage):
         raise TypeError("Supervisor model returned unexpected response type")
+    turn_tokens: int = _tokens_from_supervisor_turn(
+        response=response,
+        prompt_texts=[system_prompt_text, user_message_text],
+    )
     updated_history: list[AIMessage | ToolMessage] = [*state["conversation_history"], response]
     return Command(
         goto="supervisor_tools",
         update={
+            **budget_state_update,
             "conversation_history": updated_history,
             "iteration_count": state["iteration_count"] + 1,
+            "estimated_tokens_used": estimated_tokens_used + turn_tokens,
             **_phase_update(RunPhase.SUPERVISOR),
         },
     )
@@ -180,6 +284,14 @@ def supervisor_tools_step(
     state: ResearchRunState,
     config: RunnableConfig,
 ) -> Command[Literal["supervisor", "structure_events"]]:
+    settings: Configuration = Configuration.from_runnable_config(config)
+    deadline: float | None = state.get("budget_deadline_unix")
+    if deadline is not None and time.time() >= float(deadline):
+        return _budget_stop_command(
+            budget_stop_reason="wall_clock",
+            extra_update={},
+        )
+
     if not state["conversation_history"]:
         return Command(goto="structure_events")
 
@@ -192,7 +304,6 @@ def supervisor_tools_step(
     if not tool_calls:
         return Command(goto="structure_events")
 
-    settings: Configuration = Configuration.from_runnable_config(config)
     identity: CompanyIdentity = load_company_identity(state["identity"])
     request = load_run_request(state["request"])
     updated_findings: list[RawFinding] = load_raw_findings(state["findings"])

@@ -85,6 +85,18 @@ def build_langfuse_run_name(request: RunRequest) -> str:
     return f"employer-dd:{request.company_name}"
 
 
+def record_budget_stop_reason(budget_stop_reason: str) -> None:
+    settings = Configuration()
+    if not settings.langfuse_tracing_enabled or not _ensure_langfuse_initialized():
+        return
+    langfuse_client = get_client()
+    if langfuse_client.get_current_observation_id() is None:
+        return
+    langfuse_client.update_current_span(
+        metadata={"budget_stop_reason": budget_stop_reason},
+    )
+
+
 def build_langfuse_trace_input(request: RunRequest) -> dict[str, str | None]:
     trace_input: dict[str, str | None] = {
         "company_name": request.company_name,
