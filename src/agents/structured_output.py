@@ -1,3 +1,5 @@
+"""Invoke structured LLM output and coerce raw responses into Pydantic models."""
+
 from __future__ import annotations
 
 import json
@@ -51,6 +53,7 @@ def _json_text_to_model(raw_text: str, model_class: Type[ModelType]) -> ModelTyp
 
 
 def coerce_structured_output(output: object, model_class: Type[ModelType]) -> ModelType:
+    """Coerce a model instance, dict, JSON string, or message into the target Pydantic class."""
     if output is None:
         raise TypeError(
             f"Structured output for {model_class.__name__} returned None. "
@@ -87,6 +90,7 @@ def invoke_structured_output(
     model_class: Type[ModelType],
     prompt: str,
 ) -> ModelType:
+    """Invoke structured output with retries, then fall back to text plus json_repair."""
     settings: Configuration = Configuration.from_runnable_config(config)
     structured_model = create_llm_structured_model(
         config=config,

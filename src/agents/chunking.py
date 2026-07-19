@@ -1,7 +1,10 @@
+"""Split long text into overlapping windows for LLM context packing."""
+
 from __future__ import annotations
 
 
 def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
+    """Return overlapping substrings of stripped text sized by chunk_size and overlap."""
     if chunk_size < 1:
         raise ValueError("chunk_size must be at least 1")
     if overlap < 0:

@@ -1,3 +1,5 @@
+"""Checkpoint JSON serializer restricted to agents.models Pydantic and enum types."""
+
 from __future__ import annotations
 
 import enum
@@ -24,6 +26,7 @@ def _collect_allowed_checkpoint_modules() -> list[tuple[str, ...]]:
 
 
 def create_checkpoint_serde() -> JsonPlusSerializer:
+    """Build a JsonPlusSerializer that may only deserialize allowlisted agents.models types."""
     return JsonPlusSerializer(
         allowed_msgpack_modules=_collect_allowed_checkpoint_modules(),
     )

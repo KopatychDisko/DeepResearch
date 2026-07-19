@@ -1,3 +1,5 @@
+"""Load provider API keys from the environment and resolve a runnable LLM model name."""
+
 from __future__ import annotations
 
 import os
@@ -6,11 +8,14 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ModelCredentials:
+    """Optional OpenAI, Google, and OpenRouter API keys loaded from the environment."""
+
     openai_api_key: str | None
     google_api_key: str | None
     openrouter_api_key: str | None
 
     def has_any(self) -> bool:
+        """Return whether at least one provider API key is present."""
         return (
             self.openai_api_key is not None
             or self.google_api_key is not None
@@ -20,11 +25,14 @@ class ModelCredentials:
 
 @dataclass(frozen=True)
 class ResolvedLlmModel:
+    """Provider-prefixed model name paired with the API key used to call it."""
+
     model_name: str
     api_key: str
 
 
 def load_model_credentials() -> ModelCredentials:
+    """Read OPENAI_API_KEY, GOOGLE_API_KEY, and OPENROUTER_API_KEY from the environment."""
     return ModelCredentials(
         openai_api_key=os.environ.get("OPENAI_API_KEY"),
         google_api_key=os.environ.get("GOOGLE_API_KEY"),
@@ -33,6 +41,7 @@ def load_model_credentials() -> ModelCredentials:
 
 
 def require_model_credentials(credentials: ModelCredentials) -> None:
+    """Raise RuntimeError when no provider API key is available."""
     if credentials.has_any():
         return
     raise RuntimeError(
@@ -76,6 +85,7 @@ def resolve_llm_model(
     configured_model: str,
     credentials: ModelCredentials,
 ) -> ResolvedLlmModel:
+    """Resolve a configured model name to a provider model and matching API key, with fallbacks."""
     provider: str = _provider_from_model(model_name=configured_model)
 
     if provider == "openrouter":

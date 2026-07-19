@@ -1,3 +1,5 @@
+"""Factories for tool-calling, structured, and plain-text chat models from run config."""
+
 from __future__ import annotations
 
 from typing import Type
@@ -32,6 +34,7 @@ def _build_model(
 
 
 def create_llm_with_tools(tools: list[BaseTool], config: RunnableConfig) -> Runnable:
+    """Build a retrying chat model bound to the given tools from Configuration."""
     settings: Configuration = Configuration.from_runnable_config(config)
     model_with_tools: Runnable = _configurable_model.bind_tools(tools)
     return _build_model(
@@ -47,6 +50,7 @@ def create_llm_structured_model(
     config: RunnableConfig,
     class_name: Type[BaseModel],
 ) -> Runnable:
+    """Build a retrying chat model that returns structured output for the given Pydantic class."""
     settings: Configuration = Configuration.from_runnable_config(config)
     model_name: str = settings.get_structured_model_name()
     if model_name.startswith("openrouter:"):
@@ -66,6 +70,7 @@ def create_llm_structured_model(
 
 
 def create_llm_text_model(config: RunnableConfig) -> Runnable:
+    """Build a retrying plain-text chat model using the structured-model settings."""
     settings: Configuration = Configuration.from_runnable_config(config)
     return _build_model(
         config=config,

@@ -28,6 +28,12 @@ REQUIRED_DOC_FILES: tuple[str, ...] = (
     "src/agents/merge/merge.py",
     "src/agents/verdict/node.py",
     "src/agents/verdict/verdict.py",
+    "src/agents/checkpoint_serde.py",
+    "src/agents/chunking.py",
+    "src/agents/language.py",
+    "src/agents/llm_service.py",
+    "src/agents/model_credentials.py",
+    "src/agents/structured_output.py",
 )
 
 

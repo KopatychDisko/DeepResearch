@@ -1,9 +1,12 @@
+"""Localized labels and user-facing copy for EN/RU response language."""
+
 from __future__ import annotations
 
 from agents.models import EventCategory, ResponseLanguage
 
 
 def parse_response_language(value: str) -> ResponseLanguage:
+    """Parse a language string into ResponseLanguage or raise ValueError."""
     normalized: str = value.strip().lower()
     if normalized == ResponseLanguage.EN.value:
         return ResponseLanguage.EN
@@ -13,12 +16,14 @@ def parse_response_language(value: str) -> ResponseLanguage:
 
 
 def response_language_instruction(language: ResponseLanguage) -> str:
+    """Return the system prompt line that forces user-facing fields into the chosen language."""
     if language == ResponseLanguage.EN:
         return "Write all user-facing text fields in English."
     return "Write all user-facing text fields in Russian."
 
 
 def event_category_label(category: EventCategory, language: ResponseLanguage) -> str:
+    """Return the display label for an event category in the chosen language."""
     labels_ru: dict[EventCategory, str] = {
         EventCategory.LAYOFFS: "Сокращения",
         EventCategory.SCANDAL: "Скандал",
@@ -41,18 +46,21 @@ def event_category_label(category: EventCategory, language: ResponseLanguage) ->
 
 
 def data_conflict_label(language: ResponseLanguage) -> str:
+    """Return the localized label used when merged events conflict."""
     if language == ResponseLanguage.EN:
         return "Data conflict"
     return "Конфликт данных"
 
 
 def insufficient_data_score_explanation(language: ResponseLanguage) -> str:
+    """Return the localized short explanation for an insufficient-data score."""
     if language == ResponseLanguage.EN:
         return "Not enough confirmed events for a confident score."
     return "Недостаточно подтверждённых событий для уверенной оценки."
 
 
 def insufficient_data_summary(company_name: str, language: ResponseLanguage) -> str:
+    """Return the localized verdict summary when too few events were confirmed."""
     if language == ResponseLanguage.EN:
         return (
             f"Not enough confirmed events were collected for «{company_name}» "
@@ -65,6 +73,7 @@ def insufficient_data_summary(company_name: str, language: ResponseLanguage) -> 
 
 
 def identity_not_found_message(company_name: str, language: ResponseLanguage) -> str:
+    """Return the localized message when no company match is found."""
     if language == ResponseLanguage.EN:
         return (
             f"Company «{company_name}» was not found in open sources. "
@@ -77,6 +86,7 @@ def identity_not_found_message(company_name: str, language: ResponseLanguage) ->
 
 
 def identity_unconfirmed_message(company_name: str, language: ResponseLanguage) -> str:
+    """Return the localized message when company existence cannot be confirmed."""
     if language == ResponseLanguage.EN:
         return (
             f"Could not confirm that «{company_name}» exists. "
@@ -89,6 +99,7 @@ def identity_unconfirmed_message(company_name: str, language: ResponseLanguage) 
 
 
 def identity_ambiguous_message(company_name: str, language: ResponseLanguage) -> str:
+    """Return the localized message prompting the user to pick among matches."""
     if language == ResponseLanguage.EN:
         return (
             f"Multiple companies match «{company_name}». "
@@ -101,12 +112,14 @@ def identity_ambiguous_message(company_name: str, language: ResponseLanguage) ->
 
 
 def optional_url_placeholder(language: ResponseLanguage) -> str:
+    """Return the localized placeholder when an optional URL was omitted."""
     if language == ResponseLanguage.EN:
         return "not provided"
     return "не указана"
 
 
 def optional_description_placeholder(language: ResponseLanguage) -> str:
+    """Return the localized placeholder when an optional description was omitted."""
     if language == ResponseLanguage.EN:
         return "not provided"
     return "не указано"
