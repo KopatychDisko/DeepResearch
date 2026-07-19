@@ -128,11 +128,13 @@ uv sync
 uv run pytest
 
 # Frontend dev server (proxies to API)
-cd frontend && npm install && npm run dev
+cd src/frontend && npm install && npm run dev
 
 # API only
-uv run uvicorn employer_dd_agent.main:app --reload
+uv run uvicorn backend.main:app --reload
 ```
+
+After this package rename, if resume of old LangGraph threads fails, wipe or reset local checkpointer SQLite under `.planning/checkpoints/` (module paths in stored checkpoints are not dual-compatible).
 
 ---
 
@@ -153,8 +155,9 @@ uv run uvicorn employer_dd_agent.main:app --reload
 ## Project structure
 
 ```
-src/employer_dd_agent/   # Backend: graph, API, sources, verdict
-frontend/                # React UI
+src/agents/              # Domain + LangGraph pipeline (per-subagent folders)
+src/backend/             # FastAPI, serve, run orchestration
+src/frontend/            # React UI (Vite)
 tests/                   # Unit tests
 scripts/e2e_run.py       # CLI smoke test
 eval/                    # DeepEval datasets (optional)
