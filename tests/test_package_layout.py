@@ -62,8 +62,13 @@ def test_hatch_packages_are_agents_and_backend_only() -> None:
     data = tomllib.loads(raw.decode("utf-8"))
     packages = data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
     assert packages == ["src/agents", "src/backend"]
-    legacy_dir = PROJECT_ROOT / "src" / "employer_dd_agent"
-    assert not legacy_dir.exists(), f"legacy package directory must be absent: {legacy_dir}"
+    src_root = PROJECT_ROOT / "src"
+    python_package_dirs = {
+        path.name
+        for path in src_root.iterdir()
+        if path.is_dir() and (path / "__init__.py").is_file()
+    }
+    assert python_package_dirs == {"agents", "backend"}
 
 
 def _python_files_under(root: Path) -> list[Path]:
