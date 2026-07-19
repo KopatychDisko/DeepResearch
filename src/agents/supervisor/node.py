@@ -4,8 +4,6 @@ from typing import Literal
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
-from langgraph.graph import START, StateGraph
 from langgraph.types import Command
 
 from agents.configuration import Configuration
@@ -18,67 +16,30 @@ from agents.graph_state import (
     load_raw_findings,
     load_run_request,
 )
-from agents.identity.node import resolve_identity_step
 from agents.llm_service import create_llm_with_tools
-from agents.merge.node import merge_timeline_step
 from agents.models import (
     CompanyIdentity,
     RawFinding,
-    RunLifecycleStatus,
     RunPhase,
     ResponseLanguage,
     SourceType,
 )
 from agents.observability import trace_source_research
 from agents.prompts import SUPERVISOR_PROMPT
-from agents.structure_events.node import structure_events_step
-from agents.verdict.node import generate_verdict_step
-from employer_dd_agent.sources import fetch_hh, fetch_news, fetch_reviews
-
-
-@tool
-def search_news(query: str) -> str:
-    """Search company news in open web sources."""
-    return f"search_news requested for query={query}"
-
-
-@tool
-def search_reviews(query: str) -> str:
-    """Search employee reviews and reputation signals."""
-    return f"search_reviews requested for query={query}"
-
-
-@tool
-def search_hh(query: str) -> str:
-    """Search hiring footprint and job posting signals on hh.ru."""
-    return f"search_hh requested for query={query}"
-
-
-@tool
-def think(reflection: str) -> str:
-    """Think through gaps before choosing next action."""
-    return reflection
-
-
-@tool
-def finish_research(reason: str) -> str:
-    """Finish research when enough grounded findings are collected."""
-    return reason
+from agents.sources.hh import fetch_hh
+from agents.sources.news import fetch_news
+from agents.sources.reviews import fetch_reviews
+from agents.supervisor.tools import (
+    finish_research,
+    search_hh,
+    search_news,
+    search_reviews,
+    think,
+)
 
 
 def _phase_update(phase: RunPhase) -> dict[str, str]:
     return {"phase": phase.value}
-
-
-def _should_skip_identity_resolution(state: ResearchRunState) -> bool:
-    status_value: str = state.get("status", "")
-    phase_value: str = state.get("phase", "")
-    if status_value != RunLifecycleStatus.RUNNING.value:
-        return False
-    if phase_value != RunPhase.SUPERVISOR.value:
-        return False
-    identity_candidates = state.get("identity_candidates", [])
-    return not identity_candidates
 
 
 def _completed_sources_text(completed_sources: list[SourceType]) -> str:
@@ -279,18 +240,3 @@ def supervisor_tools_step(
             "finished": finish_requested,
         },
     )
-
-
-def build_research_graph() -> StateGraph:
-    graph: StateGraph = StateGraph(ResearchRunState)
-    graph.add_node("resolve_identity", resolve_identity_step)
-    graph.add_node("supervisor", supervisor_step)
-    graph.add_node("supervisor_tools", supervisor_tools_step)
-    graph.add_node("structure_events", structure_events_step)
-    graph.add_node("merge_timeline", merge_timeline_step)
-    graph.add_node("generate_verdict", generate_verdict_step)
-    graph.add_edge(START, "resolve_identity")
-    graph.add_edge("supervisor", "supervisor_tools")
-    graph.add_edge("structure_events", "merge_timeline")
-    graph.add_edge("merge_timeline", "generate_verdict")
-    return graph

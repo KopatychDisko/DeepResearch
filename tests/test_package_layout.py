@@ -4,8 +4,6 @@ import ast
 import tomllib
 from pathlib import Path
 
-import pytest
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_AGENTS = PROJECT_ROOT / "src" / "agents"
 SRC_BACKEND = PROJECT_ROOT / "src" / "backend"
@@ -46,17 +44,17 @@ def test_subagent_folders_exist_under_src_agents() -> None:
         assert (subpackage / "__init__.py").is_file(), f"missing {name}/__init__.py"
 
 
-def test_sources_modules_exist_when_present() -> None:
+def test_sources_modules_exist() -> None:
     sources_dir = SRC_AGENTS / "sources"
-    if not sources_dir.is_dir():
-        pytest.skip("src/agents/sources not created yet")
-    missing = [name for name in SOURCES_MODULES if not (sources_dir / name).is_file()]
-    if missing:
-        pytest.skip(
-            "sources modules land in plan 03; missing: " + ", ".join(missing)
-        )
+    assert sources_dir.is_dir(), f"missing sources package dir: {sources_dir}"
     for name in SOURCES_MODULES:
-        assert (sources_dir / name).is_file()
+        module_path = sources_dir / name
+        assert module_path.is_file(), f"missing sources module: {module_path}"
+
+
+def test_pipeline_assembler_exists() -> None:
+    pipeline_path = SRC_AGENTS / "pipeline.py"
+    assert pipeline_path.is_file(), f"missing pipeline assembler: {pipeline_path}"
 
 
 def test_hatch_packages_include_agents_and_backend() -> None:

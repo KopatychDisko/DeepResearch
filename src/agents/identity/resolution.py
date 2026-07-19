@@ -27,7 +27,7 @@ from agents.language import (
     optional_url_placeholder,
     response_language_instruction,
 )
-from employer_dd_agent.sources import search_web
+from agents.sources.common import search_web
 from agents.structured_output import invoke_structured_output
 
 

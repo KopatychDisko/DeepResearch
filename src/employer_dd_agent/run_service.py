@@ -57,7 +57,7 @@ from agents.observability import (
     build_langfuse_run_name,
     trace_research_run,
 )
-from employer_dd_agent.pipeline import _should_skip_identity_resolution, build_research_graph
+from agents.pipeline import _should_skip_identity_resolution, build_research_graph
 from employer_dd_agent.runtime_requirements import (
     ensure_checkpointer_directory,
     require_tavily_api_key,

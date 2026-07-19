@@ -115,15 +115,3 @@ def fetch_source_findings(
     for item in result_items:
         findings.append(_result_to_finding(source_type, item))
     return findings
-
-
-def fetch_news(identity: CompanyIdentity, settings: Configuration) -> list[RawFinding]:
-    return fetch_source_findings(source_type=SourceType.NEWS, identity=identity, settings=settings)
-
-
-def fetch_reviews(identity: CompanyIdentity, settings: Configuration) -> list[RawFinding]:
-    return fetch_source_findings(source_type=SourceType.REVIEWS, identity=identity, settings=settings)
-
-
-def fetch_hh(identity: CompanyIdentity, settings: Configuration) -> list[RawFinding]:
-    return fetch_source_findings(source_type=SourceType.HH, identity=identity, settings=settings)
