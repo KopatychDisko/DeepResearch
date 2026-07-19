@@ -18,7 +18,8 @@ from agents.models import (
     RunStatusResponse,
     utc_now,
 )
-from employer_dd_agent.run_service import (
+from backend.paths import frontend_dist_directory
+from backend.run_service import (
     confirm_and_continue_research_run_background,
     continue_research_run_background,
     get_research_run_status,
@@ -144,7 +145,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=500, detail=str(error)) from error
         return _build_run_response(run_id=run_id, result=result)
 
-    frontend_dist: Path = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    frontend_dist: Path = frontend_dist_directory()
     if frontend_dist.is_dir():
         app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 

@@ -11,19 +11,8 @@ from pathlib import Path
 
 import uvicorn
 
-from employer_dd_agent.main import app
-
-
-def _project_root() -> Path:
-    return Path(__file__).resolve().parents[2]
-
-
-def _frontend_directory() -> Path:
-    return _project_root() / "frontend"
-
-
-def _frontend_dist_directory() -> Path:
-    return _frontend_directory() / "dist"
+from backend.main import app
+from backend.paths import frontend_directory, frontend_dist_directory
 
 
 def _run_command(command: list[str], working_directory: Path) -> None:
@@ -48,7 +37,7 @@ def _ensure_frontend_dependencies(frontend_directory: Path) -> None:
 def _build_frontend(frontend_directory: Path) -> None:
     _ensure_frontend_dependencies(frontend_directory=frontend_directory)
     _run_command(["npm", "run", "build"], working_directory=frontend_directory)
-    if not _frontend_dist_directory().is_dir():
+    if not frontend_dist_directory().is_dir():
         raise RuntimeError("Frontend build did not produce frontend/dist")
 
 
@@ -94,11 +83,11 @@ def main() -> None:
     port: int = 8000
     url: str = f"http://{host}:{port}"
 
-    frontend_directory: Path = _frontend_directory()
-    if not frontend_directory.is_dir():
-        raise RuntimeError(f"Frontend directory not found: {frontend_directory}")
+    frontend_dir: Path = frontend_directory()
+    if not frontend_dir.is_dir():
+        raise RuntimeError(f"Frontend directory not found: {frontend_dir}")
 
-    _build_frontend(frontend_directory=frontend_directory)
+    _build_frontend(frontend_directory=frontend_dir)
 
     print(f"Employer Due Diligence is starting at {url}")
     print("Press Ctrl+C to stop.")

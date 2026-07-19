@@ -58,7 +58,7 @@ from agents.observability import (
     trace_research_run,
 )
 from agents.pipeline import _should_skip_identity_resolution, build_research_graph
-from employer_dd_agent.runtime_requirements import (
+from backend.runtime_requirements import (
     ensure_checkpointer_directory,
     require_tavily_api_key,
 )

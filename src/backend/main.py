@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
-from employer_dd_agent.api import create_app
 from agents.observability import initialize_observability
+from backend.api import create_app
 
 load_dotenv()
 initialize_observability()

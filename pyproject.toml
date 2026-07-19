@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-start = "employer_dd_agent.serve:main"
+start = "backend.serve:main"
 
 [build-system]
 requires = ["hatchling"]

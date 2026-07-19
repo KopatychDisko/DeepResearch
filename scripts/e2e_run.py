@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from agents.observability import initialize_observability
 from agents.models import RunRequest
-from employer_dd_agent.run_service import run_research_pipeline
+from backend.run_service import run_research_pipeline
 
 
 def main(argv: list[str]) -> int:
