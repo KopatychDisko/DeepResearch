@@ -1,3 +1,5 @@
+"""Web search and structured parsing that confirm or disambiguate company identity."""
+
 from __future__ import annotations
 
 import hashlib
@@ -32,6 +34,8 @@ from agents.structured_output import invoke_structured_output
 
 
 class IdentityResolutionStatus(str, Enum):
+    """Outcome of identity resolution: confirmed, ambiguous, or not found."""
+
     CONFIRMED = "confirmed"
     AMBIGUOUS = "ambiguous"
     NOT_FOUND = "not_found"
@@ -39,6 +43,8 @@ class IdentityResolutionStatus(str, Enum):
 
 @dataclass(frozen=True)
 class IdentityResolutionResult:
+    """Resolved identity payload with status, candidates, and optional message."""
+
     status: IdentityResolutionStatus
     candidates: list[CompanyCandidate]
     identity: CompanyIdentity | None
@@ -46,6 +52,7 @@ class IdentityResolutionResult:
 
 
 def normalize_company_name(company_name: str) -> str:
+    """Collapse whitespace and lowercase a company name for stable matching."""
     normalized: str = re.sub(r"\s+", " ", company_name.strip().lower())
     if not normalized:
         raise ValueError("company_name normalization produced an empty value")
@@ -53,6 +60,7 @@ def normalize_company_name(company_name: str) -> str:
 
 
 def normalize_host(url_value: str) -> str:
+    """Extract a lowercase hostname without a leading www. prefix."""
     parsed = urlparse(url_value.strip())
     host: str = parsed.netloc.lower()
     if host.startswith("www."):
@@ -89,6 +97,7 @@ def candidate_to_identity(
     requested_company_url: AnyHttpUrl | None,
     user_description: str | None,
 ) -> CompanyIdentity:
+    """Build a confirmed CompanyIdentity from a selected candidate."""
     website_url: AnyHttpUrl | None = candidate.website_url
     if website_url is None and requested_company_url is not None:
         website_url = requested_company_url
@@ -189,6 +198,7 @@ def resolve_company_identity_from_web(
     config: RunnableConfig,
     settings: Configuration,
 ) -> IdentityResolutionResult:
+    """Search the web and return confirmed, ambiguous, or not-found identity status."""
     query: str = _build_identity_search_query(
         company_name=company_name,
         company_url=company_url,
@@ -292,6 +302,7 @@ def find_candidate_by_id(
     candidates: list[CompanyCandidate],
     candidate_id: str,
 ) -> CompanyCandidate:
+    """Return the candidate matching candidate_id or raise if unknown."""
     for candidate in candidates:
         if candidate.candidate_id == candidate_id:
             return candidate

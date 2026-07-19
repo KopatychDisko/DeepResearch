@@ -1,3 +1,5 @@
+"""Shared Tavily web search helpers used by identity and source fetchers."""
+
 from __future__ import annotations
 
 from langchain_tavily import TavilySearch
@@ -63,6 +65,7 @@ def _result_to_finding(source_type: SourceType, result: dict[str, object]) -> Ra
 
 
 def search_web(query: str, max_results: int) -> list[dict[str, object]]:
+    """Run a general Tavily web search and return typed result dicts."""
     return _search_with_tavily(query=query, max_results=max_results)
 
 
@@ -105,6 +108,7 @@ def fetch_source_findings(
     identity: CompanyIdentity,
     settings: Configuration,
 ) -> list[RawFinding]:
+    """Collect RawFinding rows for one source type via Tavily search."""
     query: str = _source_query(source_type, identity)
     result_items: list[dict[str, object]] = _search_source_with_tavily(
         source_type=source_type,

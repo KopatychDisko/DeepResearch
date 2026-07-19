@@ -16,6 +16,12 @@ REQUIRED_DOC_FILES: tuple[str, ...] = (
     "src/agents/observability.py",
     "src/agents/graph_state.py",
     "src/agents/prompts.py",
+    "src/agents/identity/node.py",
+    "src/agents/identity/resolution.py",
+    "src/agents/sources/common.py",
+    "src/agents/sources/news.py",
+    "src/agents/sources/reviews.py",
+    "src/agents/sources/hh.py",
 )
 
 

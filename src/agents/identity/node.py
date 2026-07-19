@@ -1,3 +1,5 @@
+"""Graph node that resolves company identity before the supervisor research loop."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -38,6 +40,7 @@ def resolve_identity_step(
     state: ResearchRunState,
     config: RunnableConfig,
 ) -> Command[Literal["supervisor", "__end__"]]:
+    """Confirm company identity or end the run when resolution fails or is ambiguous."""
     if _should_skip_identity_resolution(state=state):
         return Command(
             goto="supervisor",
