@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import AnyHttpUrl
 
-from employer_dd_agent.identity import (
+from agents.identity.resolution import (
     _pick_auto_confirmed_candidate,
     normalize_host,
 )
@@ -27,7 +27,7 @@ def _candidate(
 def test_identity_search_query_includes_description() -> None:
     from pydantic import AnyHttpUrl
 
-    from employer_dd_agent.identity import _build_identity_search_query
+    from agents.identity.resolution import _build_identity_search_query
 
     query: str = _build_identity_search_query(
         company_name="Ромашка",

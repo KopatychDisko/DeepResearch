@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-from employer_dd_agent.merge import merge_events_into_timeline
+from agents.merge.merge import merge_events_into_timeline
 from agents.models import (
     CanonicalTimeline,
     CompanyEvent,

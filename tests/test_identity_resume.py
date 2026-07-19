@@ -7,7 +7,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 
 from agents.configuration import Configuration
 from agents.graph_state import dump_company_candidates, dump_company_identity
-from employer_dd_agent.identity import candidate_to_identity
+from agents.identity.resolution import candidate_to_identity
 from agents.models import (
     CompanyCandidate,
     Confidence,
@@ -15,7 +15,7 @@ from agents.models import (
     RunPhase,
     RunRequest,
 )
-from employer_dd_agent.pipeline import _should_skip_identity_resolution, build_research_graph
+from agents.pipeline import _should_skip_identity_resolution, build_research_graph
 from employer_dd_agent.run_service import (
     _build_checkpointer_context,
     _graph_resume_input,

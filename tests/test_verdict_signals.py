@@ -8,7 +8,7 @@ from agents.models import (
     ResponseLanguage,
     TimelineConflict,
 )
-from employer_dd_agent.verdict import build_risks_from_timeline, build_red_flags_from_timeline
+from agents.verdict.verdict import build_risks_from_timeline, build_red_flags_from_timeline
 
 
 def _event(
