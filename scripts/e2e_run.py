@@ -8,8 +8,8 @@ import sys
 
 from dotenv import load_dotenv
 
-from employer_dd_agent.observability import initialize_observability
-from employer_dd_agent.models import RunRequest
+from agents.observability import initialize_observability
+from agents.models import RunRequest
 from employer_dd_agent.run_service import run_research_pipeline
 
 

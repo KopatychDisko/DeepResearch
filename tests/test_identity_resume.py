@@ -5,10 +5,10 @@ from uuid import uuid4
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 
-from employer_dd_agent.configuration import Configuration
-from employer_dd_agent.graph_state import dump_company_candidates, dump_company_identity
+from agents.configuration import Configuration
+from agents.graph_state import dump_company_candidates, dump_company_identity
 from employer_dd_agent.identity import candidate_to_identity
-from employer_dd_agent.models import (
+from agents.models import (
     CompanyCandidate,
     Confidence,
     RunLifecycleStatus,

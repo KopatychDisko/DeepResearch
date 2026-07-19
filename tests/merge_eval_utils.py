@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TypedDict
 
 from employer_dd_agent.merge import merge_events_into_timeline
-from employer_dd_agent.models import (
+from agents.models import (
     CanonicalTimeline,
     CompanyEvent,
     Confidence,

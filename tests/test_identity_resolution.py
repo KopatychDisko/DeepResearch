@@ -6,7 +6,7 @@ from employer_dd_agent.identity import (
     _pick_auto_confirmed_candidate,
     normalize_host,
 )
-from employer_dd_agent.models import CompanyCandidate, Confidence
+from agents.models import CompanyCandidate, Confidence
 
 
 def _candidate(

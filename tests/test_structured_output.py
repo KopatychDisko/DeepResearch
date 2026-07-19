@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from employer_dd_agent.models import StructuredCompanyEvents
-from employer_dd_agent.structured_output import coerce_structured_output
+from agents.models import StructuredCompanyEvents
+from agents.structured_output import coerce_structured_output
 
 
 def test_coerce_structured_output_repairs_broken_json_string() -> None:

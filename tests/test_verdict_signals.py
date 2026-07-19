@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from employer_dd_agent.models import (
+from agents.models import (
     CanonicalTimeline,
     CanonicalTimelineEvent,
     Confidence,
