@@ -132,6 +132,17 @@ def test_soft_token_budget_stop_reason() -> None:
     assert result.update.get("budget_stop_reason") == "soft_token_budget"
 
 
+def _tool_messages_by_call_id(
+    history: list[AIMessage | ToolMessage],
+) -> dict[str, ToolMessage]:
+    tool_messages = [message for message in history if isinstance(message, ToolMessage)]
+    by_id: dict[str, ToolMessage] = {}
+    for message in tool_messages:
+        assert message.tool_call_id not in by_id
+        by_id[message.tool_call_id] = message
+    return by_id
+
+
 def test_unknown_tool_denied_observation() -> None:
     ai_message = AIMessage(
         content="",
@@ -144,11 +155,11 @@ def test_unknown_tool_denied_observation() -> None:
         extra=None,
     )
     result = supervisor_tools_step(state=state, config=_config_with_iterations(5))
+    assert result.goto == "supervisor"
     assert result.update is not None
-    history = result.update["conversation_history"]
-    tool_messages = [message for message in history if isinstance(message, ToolMessage)]
-    assert len(tool_messages) == 1
-    payload = json.loads(str(tool_messages[0].content))
+    by_id = _tool_messages_by_call_id(result.update["conversation_history"])
+    assert set(by_id.keys()) == {"call-unknown-1"}
+    payload = json.loads(str(by_id["call-unknown-1"].content))
     observation = ToolObservation.model_validate(payload)
     assert observation.status == ToolObservationStatus.DENIED
     assert observation.tool == "unknown_xyz"
@@ -180,14 +191,14 @@ def test_source_tool_error_observation_continues(monkeypatch: pytest.MonkeyPatch
     result = supervisor_tools_step(state=state, config=_config_with_iterations(5))
     assert result.goto == "supervisor"
     assert result.update is not None
-    history = result.update["conversation_history"]
-    tool_messages = [message for message in history if isinstance(message, ToolMessage)]
-    assert len(tool_messages) == 1
-    payload = json.loads(str(tool_messages[0].content))
+    by_id = _tool_messages_by_call_id(result.update["conversation_history"])
+    assert set(by_id.keys()) == {"call-news-1"}
+    payload = json.loads(str(by_id["call-news-1"].content))
     observation = ToolObservation.model_validate(payload)
     assert observation.status == ToolObservationStatus.ERROR
     assert observation.tool == "search_news"
     assert observation.error_code == "RuntimeError"
+    assert observation.error_message == "source failed after retries"
 
 
 def test_search_success_observation_omits_finding_body(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -223,15 +234,60 @@ def test_search_success_observation_omits_finding_body(monkeypatch: pytest.Monke
     )
     result = supervisor_tools_step(state=state, config=_config_with_iterations(5))
     assert result.update is not None
-    history = result.update["conversation_history"]
-    tool_messages = [message for message in history if isinstance(message, ToolMessage)]
-    assert len(tool_messages) == 1
-    payload = json.loads(str(tool_messages[0].content))
+    by_id = _tool_messages_by_call_id(result.update["conversation_history"])
+    assert set(by_id.keys()) == {"call-news-2"}
+    payload = json.loads(str(by_id["call-news-2"].content))
     assert "title" not in payload
     assert "source_url" not in payload
     assert "snippet" not in payload
     observation = ToolObservation.model_validate(payload)
     assert observation.status == ToolObservationStatus.OK
     assert observation.tool == "search_news"
+    assert observation.summary
     assert observation.counts is not None
+    assert observation.counts.get("findings") == 1
     assert observation.source == "news"
+
+
+def test_think_and_finish_emit_ok_observations() -> None:
+    ai_message = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "think",
+                "args": {"reflection": "Need more news coverage"},
+                "id": "call-think-1",
+                "type": "tool_call",
+            },
+            {
+                "name": "finish_research",
+                "args": {"reason": "Enough evidence collected"},
+                "id": "call-finish-1",
+                "type": "tool_call",
+            },
+        ],
+    )
+    state = _minimal_state(
+        iteration_count=1,
+        finished=False,
+        conversation_history=[ai_message],
+        extra=None,
+    )
+    result = supervisor_tools_step(state=state, config=_config_with_iterations(5))
+    assert result.goto == "structure_events"
+    assert result.update is not None
+    assert result.update["finished"] is True
+    by_id = _tool_messages_by_call_id(result.update["conversation_history"])
+    assert set(by_id.keys()) == {"call-think-1", "call-finish-1"}
+
+    think_payload = json.loads(str(by_id["call-think-1"].content))
+    think_observation = ToolObservation.model_validate(think_payload)
+    assert think_observation.status == ToolObservationStatus.OK
+    assert think_observation.tool == "think"
+    assert "Need more news coverage" in think_observation.summary
+
+    finish_payload = json.loads(str(by_id["call-finish-1"].content))
+    finish_observation = ToolObservation.model_validate(finish_payload)
+    assert finish_observation.status == ToolObservationStatus.OK
+    assert finish_observation.tool == "finish_research"
+    assert "Enough evidence collected" in finish_observation.summary
