@@ -55,6 +55,9 @@ def _minimal_state(
         "conversation_history": conversation_history,
         "iteration_count": iteration_count,
         "finished": finished,
+        "budget_deadline_unix": None,
+        "estimated_tokens_used": 0,
+        "budget_stop_reason": None,
     }
     if extra is not None:
         state.update(extra)  # type: ignore[typeddict-item]
@@ -62,7 +65,24 @@ def _minimal_state(
 
 
 def _config_with_iterations(max_tool_iterations: int) -> RunnableConfig:
-    return RunnableConfig(configurable={"max_tool_iterations": max_tool_iterations})
+    return RunnableConfig(
+        configurable={
+            "max_tool_iterations": max_tool_iterations,
+            "max_run_wall_clock_seconds": 600,
+            "max_estimated_run_tokens": 100000,
+        }
+    )
+
+
+def test_budget_configuration_defaults() -> None:
+    from agents.configuration import Configuration
+
+    settings = Configuration()
+    assert settings.max_tool_iterations == 8
+    assert settings.max_run_wall_clock_seconds == 600
+    assert settings.max_estimated_run_tokens == 100000
+    assert "max_run_wall_clock_seconds" in Configuration.model_fields
+    assert "max_estimated_run_tokens" in Configuration.model_fields
 
 
 def test_max_tool_iterations_budget_stop_reason() -> None:
@@ -79,14 +99,11 @@ def test_max_tool_iterations_budget_stop_reason() -> None:
 
 
 def test_wall_clock_budget_stop_reason() -> None:
-    from agents.configuration import Configuration
-
-    assert "max_run_wall_clock_seconds" in Configuration.model_fields
     state = _minimal_state(
         iteration_count=0,
         finished=False,
         conversation_history=[],
-        extra={"budget_deadline_unix": 0.0, "estimated_tokens_used": 0, "budget_stop_reason": None},
+        extra={"budget_deadline_unix": 0.0},
     )
     result = supervisor_step(
         state=state,
@@ -104,9 +121,6 @@ def test_wall_clock_budget_stop_reason() -> None:
 
 
 def test_soft_token_budget_stop_reason() -> None:
-    from agents.configuration import Configuration
-
-    assert "max_estimated_run_tokens" in Configuration.model_fields
     state = _minimal_state(
         iteration_count=0,
         finished=False,
@@ -114,7 +128,6 @@ def test_soft_token_budget_stop_reason() -> None:
         extra={
             "budget_deadline_unix": 9_999_999_999.0,
             "estimated_tokens_used": 100000,
-            "budget_stop_reason": None,
         },
     )
     result = supervisor_step(
