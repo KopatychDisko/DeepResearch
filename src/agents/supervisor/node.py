@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Literal
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -23,12 +24,15 @@ from agents.models import (
     RunPhase,
     ResponseLanguage,
     SourceType,
+    ToolObservation,
+    ToolObservationStatus,
 )
 from agents.observability import trace_source_research
 from agents.prompts import SUPERVISOR_PROMPT
 from agents.sources.hh import fetch_hh
 from agents.sources.news import fetch_news
 from agents.sources.reviews import fetch_reviews
+from agents.supervisor.permissions import authorize_tool
 from agents.supervisor.tools import (
     finish_research,
     search_hh,
@@ -160,6 +164,18 @@ def _execute_source_tool(
     raise ValueError(f"Unsupported source tool call: {tool_name}")
 
 
+def _tool_observation_message(
+    observation: ToolObservation,
+    tool_call_id: str,
+    tool_name: str,
+) -> ToolMessage:
+    return ToolMessage(
+        content=json.dumps(observation.model_dump(mode="json")),
+        tool_call_id=tool_call_id,
+        name=tool_name,
+    )
+
+
 def supervisor_tools_step(
     state: ResearchRunState,
     config: RunnableConfig,
@@ -179,7 +195,6 @@ def supervisor_tools_step(
     settings: Configuration = Configuration.from_runnable_config(config)
     identity: CompanyIdentity = load_company_identity(state["identity"])
     request = load_run_request(state["request"])
-    request = load_run_request(state["request"])
     updated_findings: list[RawFinding] = load_raw_findings(state["findings"])
     updated_sources: list[SourceType] = load_completed_sources(state["completed_sources"])
     updated_history: list[AIMessage | ToolMessage] = [*state["conversation_history"]]
@@ -192,21 +207,60 @@ def supervisor_tools_step(
         if not isinstance(tool_args_value, dict):
             tool_args_value = {}
 
-        if tool_name in {"search_news", "search_reviews", "search_hh"}:
-            source_type, source_findings = _execute_source_tool(
-                tool_name=tool_name,
-                identity=identity,
-                settings=settings,
-                response_language=request.response_language,
+        authorization = authorize_tool(tool_name)
+        if not authorization.allowed:
+            updated_history.append(
+                _tool_observation_message(
+                    observation=ToolObservation(
+                        status=ToolObservationStatus.DENIED,
+                        tool=tool_name,
+                        summary=f"Tool {tool_name} is not permitted",
+                        error_code=authorization.reason,
+                        error_message=f"Tool {tool_name} is not in the permission matrix",
+                    ),
+                    tool_call_id=tool_id,
+                    tool_name=tool_name,
+                )
             )
+            continue
+
+        if tool_name in {"search_news", "search_reviews", "search_hh"}:
+            try:
+                source_type, source_findings = _execute_source_tool(
+                    tool_name=tool_name,
+                    identity=identity,
+                    settings=settings,
+                    response_language=request.response_language,
+                )
+            except Exception as error:
+                updated_history.append(
+                    _tool_observation_message(
+                        observation=ToolObservation(
+                            status=ToolObservationStatus.ERROR,
+                            tool=tool_name,
+                            summary="Source search failed after retries",
+                            error_code=type(error).__name__,
+                            error_message=str(error),
+                        ),
+                        tool_call_id=tool_id,
+                        tool_name=tool_name,
+                    )
+                )
+                continue
             updated_findings.extend(source_findings)
             if source_type not in updated_sources:
                 updated_sources.append(source_type)
             updated_history.append(
-                ToolMessage(
-                    content=f"Collected {len(source_findings)} findings from {source_type.value}",
+                _tool_observation_message(
+                    observation=ToolObservation(
+                        status=ToolObservationStatus.OK,
+                        tool=tool_name,
+                        summary=f"Collected findings from {source_type.value}",
+                        counts={"findings": len(source_findings)},
+                        source=source_type.value,
+                    ),
                     tool_call_id=tool_id,
-                    name=tool_name,
+                    tool_name=tool_name,
                 )
             )
             continue
@@ -214,7 +268,15 @@ def supervisor_tools_step(
         if tool_name == "think":
             reflection: str = str(tool_args_value.get("reflection", ""))
             updated_history.append(
-                ToolMessage(content=reflection, tool_call_id=tool_id, name=tool_name)
+                _tool_observation_message(
+                    observation=ToolObservation(
+                        status=ToolObservationStatus.OK,
+                        tool=tool_name,
+                        summary=reflection,
+                    ),
+                    tool_call_id=tool_id,
+                    tool_name=tool_name,
+                )
             )
             continue
 
@@ -222,11 +284,31 @@ def supervisor_tools_step(
             finish_requested = True
             reason: str = str(tool_args_value.get("reason", "No reason provided"))
             updated_history.append(
-                ToolMessage(content=reason, tool_call_id=tool_id, name=tool_name)
+                _tool_observation_message(
+                    observation=ToolObservation(
+                        status=ToolObservationStatus.OK,
+                        tool=tool_name,
+                        summary=reason,
+                    ),
+                    tool_call_id=tool_id,
+                    tool_name=tool_name,
+                )
             )
             continue
 
-        raise ValueError(f"Unsupported supervisor tool call: {tool_name}")
+        updated_history.append(
+            _tool_observation_message(
+                observation=ToolObservation(
+                    status=ToolObservationStatus.DENIED,
+                    tool=tool_name,
+                    summary=f"Tool {tool_name} is not permitted",
+                    error_code="unknown_tool",
+                    error_message=f"Tool {tool_name} is not in the permission matrix",
+                ),
+                tool_call_id=tool_id,
+                tool_name=tool_name,
+            )
+        )
 
     next_node: Literal["supervisor", "structure_events"] = "supervisor"
     if finish_requested:
