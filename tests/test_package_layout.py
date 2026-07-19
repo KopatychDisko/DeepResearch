@@ -57,12 +57,13 @@ def test_pipeline_assembler_exists() -> None:
     assert pipeline_path.is_file(), f"missing pipeline assembler: {pipeline_path}"
 
 
-def test_hatch_packages_include_agents_and_backend() -> None:
+def test_hatch_packages_are_agents_and_backend_only() -> None:
     raw = PYPROJECT.read_bytes()
     data = tomllib.loads(raw.decode("utf-8"))
     packages = data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
-    assert "src/agents" in packages
-    assert "src/backend" in packages
+    assert packages == ["src/agents", "src/backend"]
+    legacy_dir = PROJECT_ROOT / "src" / "employer_dd_agent"
+    assert not legacy_dir.exists(), f"legacy package directory must be absent: {legacy_dir}"
 
 
 def _python_files_under(root: Path) -> list[Path]:
