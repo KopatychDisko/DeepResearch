@@ -264,5 +264,23 @@ class StructuredCompanyEvents(BaseModel):
     events: list[CompanyEvent]
 
 
+
+class ToolObservationStatus(str, Enum):
+    OK = "ok"
+    ERROR = "error"
+    DENIED = "denied"
+
+
+class ToolObservation(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: ToolObservationStatus
+    tool: str
+    summary: str
+    counts: dict[str, int] | None = None
+    source: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+
 def utc_now() -> datetime:
     return datetime.now(UTC)
