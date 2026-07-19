@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useLanguage } from "../lib/i18n";
 import type { RunViewModel } from "../types";
 import { SourceLinksPanel } from "./SourceLinksPanel";
+import { TimelineView } from "./TimelineView";
 import { VerdictCard } from "./VerdictCard";
 
 interface ResultsDashboardProps {
   result: RunViewModel;
 }
 
-type TabId = "verdict" | "sources";
+type TabId = "verdict" | "timeline" | "sources";
 
 export function ResultsDashboard({ result }: ResultsDashboardProps) {
   const { t } = useLanguage();
@@ -29,13 +30,20 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
         </div>
       </header>
 
-      <nav className="tab-nav" aria-label="Report sections">
+      <nav className="tab-nav" aria-label={t.reportSectionsAria}>
         <button
           type="button"
           className={activeTab === "verdict" ? "tab active" : "tab"}
           onClick={() => setActiveTab("verdict")}
         >
           {t.tabVerdict}
+        </button>
+        <button
+          type="button"
+          className={activeTab === "timeline" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("timeline")}
+        >
+          {t.tabTimeline}
         </button>
         <button
           type="button"
@@ -49,6 +57,11 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
       <div className="tab-content">
         {activeTab === "verdict" ? (
           <VerdictCard verdict={result.verdict} companyName={result.identity.canonical_name} />
+        ) : null}
+        {activeTab === "timeline" ? (
+          <article className="card">
+            <TimelineView timeline={result.timeline} />
+          </article>
         ) : null}
         {activeTab === "sources" ? (
           <article className="card">
