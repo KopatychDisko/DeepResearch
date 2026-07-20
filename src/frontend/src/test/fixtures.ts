@@ -1,4 +1,4 @@
-import type { EmployerVerdict, RunViewModel } from "../types";
+import type { EmployerVerdict, HhVacancyAnalysis, RunViewModel } from "../types";
 
 export const mockVerdict: EmployerVerdict = {
   color: "yellow",
@@ -56,4 +56,55 @@ export const mockRunViewModel: RunViewModel = {
     conflicts: [],
   },
   verdict: mockVerdict,
+};
+
+export const mockHhVacancyAnalysisFound: HhVacancyAnalysis = {
+  status: "found",
+  employer_name: "Acme Corporation",
+  employer_url: "https://hh.ru/employer/12345",
+  employer_rating: 4.2,
+  employer_rating_count: 128,
+  salary_summary: "150 000 – 220 000 ₽ typical range for engineering roles.",
+  conditions_summary: "Hybrid and remote schedules common; full-time employment.",
+  vacancies: [
+    {
+      vacancy_id: "vac-001",
+      title: "Senior Backend Engineer",
+      url: "https://hh.ru/vacancy/100001",
+      salary_text: "180 000 – 250 000 ₽",
+      location_text: "Moscow",
+      schedule_text: "full-time, remote",
+      published_at: "2026-07-01",
+    },
+    {
+      vacancy_id: "vac-002",
+      title: "Product Manager",
+      url: "https://hh.ru/vacancy/100002",
+      salary_text: "200 000 – 280 000 ₽",
+      location_text: "Saint Petersburg",
+      schedule_text: "full-time, hybrid",
+      published_at: "2026-07-10",
+    },
+  ],
+};
+
+export const mockHhVacancyAnalysisNotFound: HhVacancyAnalysis = {
+  status: "not_found",
+  employer_name: null,
+  employer_url: null,
+  employer_rating: null,
+  employer_rating_count: null,
+  salary_summary: "",
+  conditions_summary: "",
+  vacancies: [],
+};
+
+export const mockRunViewModelWithHh: RunViewModel = {
+  ...mockRunViewModel,
+  hhVacancyAnalysis: mockHhVacancyAnalysisFound,
+};
+
+export const mockHhNotFoundViewModel: RunViewModel = {
+  ...mockRunViewModel,
+  hhVacancyAnalysis: mockHhVacancyAnalysisNotFound,
 };

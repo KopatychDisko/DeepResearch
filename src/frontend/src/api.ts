@@ -1,4 +1,10 @@
-import type { RunStartResponse, RunStatusResponse, RunViewModel } from "./types";
+import type {
+  HhVacancyAnalysis,
+  HhVacancyAnalysisApi,
+  RunStartResponse,
+  RunStatusResponse,
+  RunViewModel,
+} from "./types";
 
 export interface StartRunPayload {
   companyName: string;
@@ -86,17 +92,44 @@ export async function fetchRunStatus(runId: string): Promise<RunStatusResponse> 
   return response.json() as Promise<RunStatusResponse>;
 }
 
+function mapHhVacancyAnalysis(api: HhVacancyAnalysisApi): HhVacancyAnalysis {
+  const status: HhVacancyAnalysis["status"] =
+    api.status === "found" ? "found" : "not_found";
+  return {
+    status,
+    employer_name: api.employer_name,
+    employer_url: api.employer_profile_url,
+    employer_rating: api.employer_rating,
+    employer_rating_count: api.employer_rating_count,
+    salary_summary: api.salary_summary,
+    conditions_summary: api.conditions_summary,
+    vacancies: api.vacancies.map((vacancy) => ({
+      vacancy_id: vacancy.vacancy_id,
+      title: vacancy.title,
+      url: vacancy.url,
+      salary_text: vacancy.salary_text,
+      location_text: vacancy.location_text,
+      schedule_text: vacancy.schedule_text,
+      published_at: vacancy.published_at,
+    })),
+  };
+}
+
 export function statusToViewModel(status: RunStatusResponse): RunViewModel | null {
   if (status.result === null) {
     return null;
   }
-  return {
+  const viewModel: RunViewModel = {
     runId: status.run_id,
     identity: status.result.identity,
     findings: status.result.findings,
     timeline: status.result.timeline,
     verdict: status.result.verdict,
   };
+  if (status.result.hh_vacancy_analysis !== undefined) {
+    viewModel.hhVacancyAnalysis = mapHhVacancyAnalysis(status.result.hh_vacancy_analysis);
+  }
+  return viewModel;
 }
 
 export async function resumePollingAfterIdentity(

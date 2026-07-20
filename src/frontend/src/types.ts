@@ -100,11 +100,46 @@ export interface RawFinding {
   metadata: RetrievalMetadata;
 }
 
+export type HhEmployerStatus = "found" | "not_found";
+
+export interface HhVacancyItem {
+  vacancy_id: string;
+  title: string;
+  url: string;
+  salary_text: string | null;
+  location_text: string | null;
+  schedule_text: string | null;
+  published_at: string | null;
+}
+
+export interface HhVacancyAnalysis {
+  status: HhEmployerStatus;
+  employer_name: string | null;
+  employer_url: string | null;
+  employer_rating: number | null;
+  employer_rating_count: number | null;
+  salary_summary: string;
+  conditions_summary: string;
+  vacancies: HhVacancyItem[];
+}
+
+export interface HhVacancyAnalysisApi {
+  status: HhEmployerStatus | "error";
+  employer_name: string | null;
+  employer_profile_url: string | null;
+  employer_rating: number | null;
+  employer_rating_count: number | null;
+  salary_summary: string;
+  conditions_summary: string;
+  vacancies: HhVacancyItem[];
+}
+
 export interface ResearchRunResult {
   identity: CompanyIdentity;
   findings: RawFinding[];
   timeline: CanonicalTimeline;
   verdict: EmployerVerdict;
+  hh_vacancy_analysis?: HhVacancyAnalysisApi;
 }
 
 export interface RunStatusResponse {
@@ -136,4 +171,5 @@ export interface RunViewModel {
   findings: RawFinding[];
   timeline: CanonicalTimeline;
   verdict: EmployerVerdict;
+  hhVacancyAnalysis?: HhVacancyAnalysis;
 }
