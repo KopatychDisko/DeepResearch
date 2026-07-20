@@ -467,34 +467,40 @@ a:hover {
   color: var(--text-muted);
 }
 
-.tab-nav {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 4px;
-  border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+.collapsible-section {
+  margin-top: 16px;
 }
 
-.tab {
-  flex: 1;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text-muted);
+.collapsible-section.insight-section {
+  margin-top: 0;
+}
+
+.collapsible-summary {
+  cursor: pointer;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  color: var(--text);
+  list-style: none;
 }
 
-.tab:hover {
-  color: var(--text-secondary);
+.collapsible-summary::-webkit-details-marker {
+  display: none;
 }
 
-.tab.active {
-  background: var(--accent-strong);
-  color: #fff;
+.collapsible-summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.collapsible-section[open] > .collapsible-summary::before {
+  transform: rotate(90deg);
+}
+
+.collapsible-section[open] > .collapsible-summary {
+  margin-bottom: 12px;
 }
 
 .section-title {
@@ -860,6 +866,58 @@ a:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* HH vacancies panel */
+
+.hh-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 640px) {
+  .hh-summary-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.hh-metric {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.hh-metric-value {
+  margin: 6px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hh-employer-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.hh-employer-link:hover {
+  text-decoration: underline;
+}
+
+.hh-vacancy-list {
+  margin-top: 24px;
+}
+
+.vacancy-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 /* Identity picker */

@@ -78,6 +78,17 @@ export interface Translations {
   categoryScandal: string;
   categoryProduct: string;
   categoryReviewSignal: string;
+  hhVacanciesTitle: string;
+  hhVacanciesHint: string;
+  hhVacanciesNotFound: string;
+  hhVacancyListTitle: string;
+  hhVacanciesListEmpty: string;
+  hhRatingLabel: string;
+  hhSalaryLabel: string;
+  hhConditionsLabel: string;
+  hhEmployerProfile: string;
+  hhRatingAria: string;
+  hhVacanciesCount: string;
 }
 
 const translations: Record<Locale, Translations> = {
@@ -157,6 +168,18 @@ const translations: Record<Locale, Translations> = {
     categoryScandal: "Скандал",
     categoryProduct: "Продукт",
     categoryReviewSignal: "Отзывы",
+    hhVacanciesTitle: "Вакансии на hh.ru",
+    hhVacanciesHint:
+      "Оценка работодателя, зарплаты и условия по открытым вакансиям на hh.ru. Не влияет на общий вердикт.",
+    hhVacanciesNotFound: "Работодатель не найден на hh.ru по названию «{companyName}».",
+    hhVacancyListTitle: "Открытые вакансии",
+    hhVacanciesListEmpty: "Активных вакансий не найдено.",
+    hhRatingLabel: "Рейтинг на hh.ru",
+    hhSalaryLabel: "Зарплаты",
+    hhConditionsLabel: "Условия работы",
+    hhEmployerProfile: "Профиль работодателя на hh.ru",
+    hhRatingAria: "Рейтинг работодателя",
+    hhVacanciesCount: "вакансий",
   },
   en: {
     headerBadge: "Employer DD",
@@ -233,6 +256,18 @@ const translations: Record<Locale, Translations> = {
     categoryScandal: "Scandal",
     categoryProduct: "Product",
     categoryReviewSignal: "Reviews",
+    hhVacanciesTitle: "HH vacancies",
+    hhVacanciesHint:
+      "Employer rating, salary, and conditions from open hh.ru vacancies. Does not affect the overall verdict.",
+    hhVacanciesNotFound: 'Employer not found on hh.ru for "{companyName}".',
+    hhVacancyListTitle: "Open vacancies",
+    hhVacanciesListEmpty: "No active vacancies found.",
+    hhRatingLabel: "hh.ru rating",
+    hhSalaryLabel: "Salaries",
+    hhConditionsLabel: "Working conditions",
+    hhEmployerProfile: "Employer profile on hh.ru",
+    hhRatingAria: "Employer rating",
+    hhVacanciesCount: "vacancies",
   },
 };
 
@@ -318,4 +353,22 @@ export function categoryLabel(category: EventCategory, t: Translations): string 
     return t.categoryProduct;
   }
   return t.categoryReviewSignal;
+}
+
+export function hhNotFoundMessage(companyName: string, t: Translations): string {
+  return t.hhVacanciesNotFound.replace("{companyName}", companyName);
+}
+
+export function hhRatingDisplay(
+  rating: number,
+  count: number | null,
+  locale: Locale,
+  _t: Translations,
+): string {
+  if (count !== null && count > 0) {
+    return locale === "en"
+      ? `${rating} of 5 (${count} reviews)`
+      : `${rating} из 5 (${count} отзывов)`;
+  }
+  return locale === "en" ? `${rating} of 5` : `${rating} из 5`;
 }
