@@ -81,6 +81,17 @@ def load_hh_vacancy_analysis(payload: dict[str, object]) -> HhVacancyAnalysis:
     return HhVacancyAnalysis.model_validate(payload)
 
 
+def is_hh_vacancy_analysis_pending(state: ResearchRunState) -> bool:
+    """Return True when HH analysis has not yet been fetched for this run."""
+    raw_analysis: object = state.get("hh_vacancy_analysis")
+    if raw_analysis is None or raw_analysis == {}:
+        return True
+    if not isinstance(raw_analysis, dict):
+        raise TypeError("hh_vacancy_analysis must be a dict in graph state")
+    analysis = load_hh_vacancy_analysis(raw_analysis)
+    return analysis.fetched_at == ""
+
+
 def dump_raw_findings(findings: list[RawFinding]) -> list[dict[str, object]]:
     """Serialize raw findings into JSON-compatible graph state."""
     return [finding.model_dump(mode="json") for finding in findings]

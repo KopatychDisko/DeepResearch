@@ -40,6 +40,7 @@ from agents.graph_state import (
     load_hh_vacancy_analysis,
     load_raw_findings,
     load_run_request,
+    is_hh_vacancy_analysis_pending,
 )
 from agents.hh_vacancies.analysis import build_pending_hh_vacancy_analysis
 from agents.identity.resolution import (
@@ -302,14 +303,21 @@ def _status_from_state(state: ResearchRunState) -> RunLifecycleStatus:
         return RunLifecycleStatus.RUNNING
 
 
+def _hh_vacancy_analysis_pending(state: ResearchRunState) -> bool:
+    """Return True when HH analysis has not yet been fetched for this run."""
+    return is_hh_vacancy_analysis_pending(state=state)
+
+
 def _graph_resume_input(
     state: ResearchRunState,
     next_nodes: tuple[str, ...],
-) -> Command[Literal["supervisor"]] | None:
+) -> Command[Literal["supervisor", "analyze_hh_vacancies"]] | None:
     if next_nodes:
         return None
-    # No pending nodes: skip identity interrupt and resume directly into supervisor.
+    # No pending nodes: skip identity interrupt and resume into HH or supervisor.
     if _should_skip_identity_resolution(state=state):
+        if _hh_vacancy_analysis_pending(state=state):
+            return Command(goto="analyze_hh_vacancies")
         return Command(goto="supervisor")
     return None
 
@@ -423,7 +431,7 @@ def _execute_graph(
             if state_snapshot.values is None or not state_snapshot.values:
                 raise LookupError(f"Run not found: {run_id}")
             request = load_run_request(state_snapshot.values["request"])
-            resume_input: Command[Literal["supervisor"]] | None = _graph_resume_input(
+            resume_input: Command[Literal["supervisor", "analyze_hh_vacancies"]] | None = _graph_resume_input(
                 state=state_snapshot.values,
                 next_nodes=tuple(state_snapshot.next or ()),
             )
@@ -539,7 +547,7 @@ def confirm_company_identity_selection(run_id: UUID, candidate_id: str) -> RunRe
                 "identity": dump_company_identity(identity),
                 "identity_candidates": [],
                 "status": RunLifecycleStatus.RUNNING.value,
-                "phase": RunPhase.SUPERVISOR.value,
+                "phase": RunPhase.ANALYZE_HH_VACANCIES.value,
                 "error_message": None,
             },
         )

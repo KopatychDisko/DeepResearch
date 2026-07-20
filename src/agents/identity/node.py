@@ -12,6 +12,7 @@ from agents.graph_state import (
     ResearchRunState,
     dump_company_candidates,
     dump_company_identity,
+    is_hh_vacancy_analysis_pending,
     load_run_request,
 )
 from agents.identity.resolution import (
@@ -30,7 +31,10 @@ def _should_skip_identity_resolution(state: ResearchRunState) -> bool:
     phase_value: str = state.get("phase", "")
     if status_value != RunLifecycleStatus.RUNNING.value:
         return False
-    if phase_value != RunPhase.SUPERVISOR.value:
+    if phase_value not in (
+        RunPhase.SUPERVISOR.value,
+        RunPhase.ANALYZE_HH_VACANCIES.value,
+    ):
         return False
     identity_candidates = state.get("identity_candidates", [])
     return not identity_candidates
@@ -42,9 +46,19 @@ def resolve_identity_step(
 ) -> Command[Literal["supervisor", "analyze_hh_vacancies", "__end__"]]:
     """Confirm company identity or end the run when resolution fails or is ambiguous."""
     if _should_skip_identity_resolution(state=state):
+        resume_target: Literal["supervisor", "analyze_hh_vacancies"] = (
+            "analyze_hh_vacancies"
+            if is_hh_vacancy_analysis_pending(state=state)
+            else "supervisor"
+        )
+        resume_phase = (
+            RunPhase.ANALYZE_HH_VACANCIES
+            if resume_target == "analyze_hh_vacancies"
+            else RunPhase.SUPERVISOR
+        )
         return Command(
-            goto="supervisor",
-            update=_phase_update(RunPhase.SUPERVISOR),
+            goto=resume_target,
+            update=_phase_update(resume_phase),
         )
 
     settings: Configuration = Configuration.from_runnable_config(config)

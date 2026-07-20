@@ -127,7 +127,7 @@ def create_app() -> FastAPI:
             run_id=run_id,
             created_at=utc_now(),
             status=RunLifecycleStatus.RUNNING,
-            phase=RunPhase.SUPERVISOR,
+            phase=RunPhase.ANALYZE_HH_VACANCIES,
             message="Identity confirmed. Research resumed in background.",
         )
 
