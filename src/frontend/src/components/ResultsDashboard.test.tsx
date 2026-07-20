@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
 import type { RunViewModel } from "../types";
 import { ResultsDashboard } from "./ResultsDashboard";
-import { mockRunViewModel } from "../test/fixtures";
+import {
+  mockHhNotFoundViewModel,
+  mockRunViewModel,
+  mockRunViewModelWithHh,
+} from "../test/fixtures";
 
 function renderDashboard(result: RunViewModel = mockRunViewModel): void {
   render(
@@ -19,50 +23,60 @@ describe("ResultsDashboard", () => {
     localStorage.setItem("employer-dd-locale", "en");
   });
 
-  it("shows Verdict and Sources tabs; Sources reachable with findings (UX-04)", async () => {
+  it("hides raw sources until the user expands the section (UX-04)", async () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    expect(screen.getByRole("button", { name: "Verdict" })).toBeInTheDocument();
-    const sourcesTab = screen.getByRole("button", { name: /Sources/ });
-    expect(sourcesTab).toBeInTheDocument();
+    expect(screen.getByText("Acme cuts 10% of staff")).not.toBeVisible();
 
-    await user.click(sourcesTab);
-    expect(screen.getByRole("heading", { name: "Links used in the report" })).toBeInTheDocument();
-    expect(screen.getByText("Acme cuts 10% of staff")).toBeInTheDocument();
+    await user.click(screen.getByText(/Sources \(1\)/));
+    expect(screen.getByText("Acme cuts 10% of staff")).toBeVisible();
   });
 
-  it("shows Timeline tab with timeline.events (UX-05)", async () => {
+  it("shows sources empty copy when expanded and findings are empty (UX-04)", async () => {
     const user = userEvent.setup();
-    renderDashboard();
-
-    const tabs = screen.getAllByRole("button", { name: /Verdict|Timeline|Sources/ });
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      "Verdict",
-      "Timeline",
-      expect.stringMatching(/^Sources/),
-    ]);
-
-    const timelineTab = screen.getByRole("button", { name: "Timeline" });
-    await user.click(timelineTab);
-    expect(
-      screen.getByText("Company announced a 10% workforce reduction"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "example.com" })).toHaveAttribute(
-      "href",
-      "https://example.com/news/layoffs-2024",
-    );
-  });
-
-  it("shows timeline empty copy when Timeline tab selected and events empty (UX-05)", async () => {
-    const user = userEvent.setup();
-    const emptyTimeline: RunViewModel = {
+    const noFindings: RunViewModel = {
       ...mockRunViewModel,
-      timeline: { events: [], conflicts: [] },
+      findings: [],
     };
-    renderDashboard(emptyTimeline);
+    renderDashboard(noFindings);
 
-    await user.click(screen.getByRole("button", { name: "Timeline" }));
-    expect(screen.getByText("No events found.")).toBeInTheDocument();
+    await user.click(screen.getByText(/Sources \(0\)/));
+    expect(screen.getByText("No sources collected.")).toBeInTheDocument();
+  });
+
+  it("hides HH vacancy content until the user expands the HH section", async () => {
+    const user = userEvent.setup();
+    renderDashboard(mockRunViewModelWithHh);
+
+    expect(screen.getByText("Senior Backend Engineer")).not.toBeVisible();
+
+    await user.click(screen.getByText(/HH vacancies \(2\)/));
+    expect(screen.getByText("Senior Backend Engineer")).toBeVisible();
+  });
+
+  it("shows not_found HH message with company name when HH section expanded", async () => {
+    const user = userEvent.setup();
+    renderDashboard(mockHhNotFoundViewModel);
+
+    await user.click(screen.getByText(/HH vacancies \(0\)/));
+    expect(
+      screen.getByText('Employer not found on hh.ru for "Acme Corporation".'),
+    ).toBeInTheDocument();
+  });
+
+  it("omits HH section for legacy runs without hhVacancyAnalysis", () => {
+    renderDashboard(mockRunViewModel);
+
+    expect(screen.queryByText(/HH vacancies/)).not.toBeInTheDocument();
+  });
+
+  it("keeps verdict score unchanged when HH data is present", () => {
+    renderDashboard(mockRunViewModelWithHh);
+
+    expect(screen.getByText("6")).toBeInTheDocument();
+    expect(
+      screen.getByText("Mixed signals from recent layoffs and steady product shipping."),
+    ).toBeInTheDocument();
   });
 });
