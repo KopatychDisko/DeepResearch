@@ -22,6 +22,20 @@ from agents.structured_output import invoke_structured_output
 MAX_ACTIVE_VACANCIES: int = 10
 
 
+def build_pending_hh_vacancy_analysis(search_query: str) -> HhVacancyAnalysis:
+    """Return the initial placeholder block before analyze_hh_vacancies runs."""
+    return HhVacancyAnalysis(
+        status=HhVacancyStatus.NOT_FOUND,
+        message="",
+        search_query=search_query,
+        employer=None,
+        vacancies=[],
+        salary_summary="",
+        conditions_summary="",
+        fetched_at="",
+    )
+
+
 def _utc_now_iso() -> str:
     from datetime import UTC, datetime
 

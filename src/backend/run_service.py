@@ -29,6 +29,7 @@ from agents.graph_state import (
     dump_canonical_timeline,
     dump_company_identity,
     dump_employer_verdict,
+    dump_hh_vacancy_analysis,
     dump_run_request,
     load_canonical_timeline,
     load_company_candidates,
@@ -36,9 +37,11 @@ from agents.graph_state import (
     load_company_identity,
     load_completed_sources,
     load_employer_verdict,
+    load_hh_vacancy_analysis,
     load_raw_findings,
     load_run_request,
 )
+from agents.hh_vacancies.analysis import build_pending_hh_vacancy_analysis
 from agents.identity.resolution import (
     candidate_to_identity,
     find_candidate_by_id,
@@ -87,6 +90,7 @@ _STATUS_REQUIRED_KEYS: tuple[str, ...] = (
     "events",
     "timeline",
     "verdict",
+    "hh_vacancy_analysis",
     "completed_sources",
     "request",
     "iteration_count",
@@ -170,6 +174,9 @@ def build_initial_state(request: RunRequest, run_id: UUID) -> ResearchRunState:
                 company_name=request.company_name,
                 language=request.response_language,
             )
+        ),
+        "hh_vacancy_analysis": dump_hh_vacancy_analysis(
+            build_pending_hh_vacancy_analysis(search_query=request.company_name)
         ),
         "completed_sources": [],
         "conversation_history": [],
@@ -271,6 +278,7 @@ def _state_to_result(state: ResearchRunState) -> ResearchRunResult:
         events=load_company_events(state["events"]),
         timeline=load_canonical_timeline(state["timeline"]),
         verdict=load_employer_verdict(state["verdict"]),
+        hh_vacancy_analysis=load_hh_vacancy_analysis(state["hh_vacancy_analysis"]),
     )
 
 
