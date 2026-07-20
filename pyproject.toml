@@ -5,6 +5,7 @@ description = "Employer due diligence API and ingestion pipeline."
 requires-python = ">=3.12"
 dependencies = [
   "fastapi",
+  "httpx>=0.28.1",
   "json-repair>=0.61.0",
   "langchain>=1.3.11",
   "langchain-google-genai>=4.2.6",
@@ -34,6 +35,7 @@ packages = ["src/agents", "src/backend"]
 dev = [
     "deepeval>=4.0.7",
     "pytest>=9.1.1",
+    "respx>=0.23.1",
 ]
 
 [tool.pytest.ini_options]

@@ -1,0 +1,18 @@
+{
+  "found": 1,
+  "pages": 1,
+  "per_page": 20,
+  "page": 0,
+  "items": [
+    {
+      "id": "1740",
+      "name": "Яндекс",
+      "url": "https://api.hh.ru/employers/1740",
+      "alternate_url": "https://hh.ru/employer/1740",
+      "logo_urls": {
+        "original": "https://img.hhcdn.ru/employer-logo-original/123456.png"
+      },
+      "open_vacancies": 1523
+    }
+  ]
+}

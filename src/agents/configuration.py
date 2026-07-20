@@ -28,6 +28,7 @@ class Configuration(BaseModel):
     chunk_overlap: int = Field(default=120)
     sqlite_checkpointer_path: str = Field(default=".planning/checkpoints/research.sqlite")
     langfuse_tracing_enabled: bool = Field(default=True)
+    hh_api_user_agent: str = Field(default="EmployerDD/1.0 (contact@example.com)")
 
     def get_structured_model_name(self) -> str:
         """Resolve the model used for structured extraction, falling back to llm_model."""

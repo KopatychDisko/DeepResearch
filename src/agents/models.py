@@ -328,6 +328,84 @@ class ToolObservationStatus(str, Enum):
     DENIED = "denied"
 
 
+class HhVacancyStatus(str, Enum):
+    """Outcome status for hh.ru vacancy analysis blocks."""
+
+    FOUND = "found"
+    NOT_FOUND = "not_found"
+    ERROR = "error"
+
+
+class HhSalaryRange(BaseModel):
+    """Salary range parsed from hh.ru vacancy list or detail payloads."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    from_amount: int | None
+    to_amount: int | None
+    currency: str | None
+    gross: bool | None
+
+
+class HhVacancyItem(BaseModel):
+    """Single active vacancy row sourced from api.hh.ru."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    vacancy_id: str
+    title: str
+    url: AnyHttpUrl
+    area_name: str | None
+    salary: HhSalaryRange | None
+    employment_type: str | None
+    schedule: str | None
+    experience: str | None
+    working_conditions: list[str]
+    published_at: str | None
+
+
+class HhEmployerRating(BaseModel):
+    """Employer rating and trust signals when present in hh.ru profile data."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    available: bool
+    average_score: float | None
+    reviews_count: int | None
+    recommendation_percent: float | None
+    trusted: bool | None
+    accredited_it_employer: bool | None
+    source_url: AnyHttpUrl | None
+
+
+class HhVacancySummary(BaseModel):
+    """Employer profile summary attached to vacancy analysis."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    employer_id: str
+    name: str
+    profile_url: AnyHttpUrl
+    site_url: AnyHttpUrl | None
+    open_vacancies_count: int | None
+    rating: HhEmployerRating
+
+
+class HhVacancyAnalysis(BaseModel):
+    """Structured hh.ru vacancy assessment block stored separately from timeline."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: HhVacancyStatus
+    message: str
+    search_query: str
+    employer: HhVacancySummary | None
+    vacancies: list[HhVacancyItem]
+    salary_summary: str
+    conditions_summary: str
+    fetched_at: str
+
+
 class ToolObservation(BaseModel):
     """Structured tool outcome the harness writes into ToolMessage content."""
 
