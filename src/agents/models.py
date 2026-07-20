@@ -387,6 +387,7 @@ class HhVacancyItem(BaseModel):
 
     @model_validator(mode="after")
     def populate_display_fields(self) -> Self:
+        """Derive salary_text, location_text, and schedule_text from raw vacancy fields."""
         updates: dict[str, str | None] = {}
         if self.salary_text is None:
             updates["salary_text"] = _format_hh_salary_text(self.salary)
@@ -461,6 +462,7 @@ class HhVacancyAnalysis(BaseModel):
 
     @model_validator(mode="after")
     def populate_api_fields(self) -> Self:
+        """Flatten employer profile fields for frontend API contract."""
         updates: dict[str, object] = {}
         if self.employer is not None:
             if self.employer_name is None:
