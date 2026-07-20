@@ -35,7 +35,7 @@ def test_should_skip_identity_resolution_after_user_confirmation() -> None:
         confidence=Confidence.HIGH,
     )
     state["status"] = RunLifecycleStatus.RUNNING.value
-    state["phase"] = RunPhase.SUPERVISOR.value
+    state["phase"] = RunPhase.ANALYZE_HH_VACANCIES.value
     state["identity_candidates"] = []
     state["identity"] = dump_company_identity(
         candidate_to_identity(
@@ -71,7 +71,7 @@ def test_graph_resume_input_after_identity_confirmation() -> None:
         confidence=Confidence.HIGH,
     )
     state["status"] = RunLifecycleStatus.RUNNING.value
-    state["phase"] = RunPhase.SUPERVISOR.value
+    state["phase"] = RunPhase.ANALYZE_HH_VACANCIES.value
     state["identity_candidates"] = []
     state["identity"] = dump_company_identity(
         candidate_to_identity(
@@ -84,7 +84,7 @@ def test_graph_resume_input_after_identity_confirmation() -> None:
 
     resume_input = _graph_resume_input(state=state, next_nodes=())
     assert resume_input is not None
-    assert resume_input.goto == "supervisor"
+    assert resume_input.goto == "analyze_hh_vacancies"
 
 
 def test_identity_confirmation_marks_resume_pending_state() -> None:
@@ -123,14 +123,14 @@ def test_identity_confirmation_marks_resume_pending_state() -> None:
             ),
             "identity_candidates": [],
             "status": RunLifecycleStatus.RUNNING.value,
-            "phase": RunPhase.SUPERVISOR.value,
+            "phase": RunPhase.ANALYZE_HH_VACANCIES.value,
             "error_message": None,
         },
     )
 
     snapshot = graph.get_state(execution_context.run_config)
     assert snapshot.values["status"] == RunLifecycleStatus.RUNNING.value
-    assert snapshot.values["phase"] == RunPhase.SUPERVISOR.value
+    assert snapshot.values["phase"] == RunPhase.ANALYZE_HH_VACANCIES.value
     assert snapshot.values["identity_candidates"] == []
     assert _graph_resume_input(state=snapshot.values, next_nodes=tuple(snapshot.next or ())) is not None or snapshot.next == (
         "resolve_identity",
