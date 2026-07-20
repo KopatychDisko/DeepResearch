@@ -2,14 +2,16 @@ import { useRef, useState } from "react";
 import {
   confirmRunIdentity,
   fetchRunStatus,
+  retryHhEmployerSearch,
   startBackgroundRun,
+  statusToViewModel,
 } from "./api";
 import { CompanySearchForm } from "./components/CompanySearchForm";
 import { IdentityPicker } from "./components/IdentityPicker";
 import { LanguageToggle } from "./components/LanguageToggle";
 import { ResultsDashboard } from "./components/ResultsDashboard";
 import { RunProgressCard } from "./components/RunProgressCard";
-import { useLanguage } from "./lib/i18n";
+import { useLanguage, type Locale } from "./lib/i18n";
 import type { RunStatusResponse, RunViewModel } from "./types";
 
 const POLL_INTERVAL_MS = 2000;
@@ -24,6 +26,7 @@ export function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<RunStatusResponse | null>(null);
   const [result, setResult] = useState<RunViewModel | null>(null);
+  const [runLocale, setRunLocale] = useState<Locale | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
   const pollGenerationRef = useRef<number>(0);
 
@@ -52,16 +55,11 @@ export function App() {
         // After identity confirm, keep polling until running/completed —
         // a stale awaiting_input must not freeze the UI.
       } else if (status.status === "completed") {
-        if (status.result === null) {
+        const viewModel: RunViewModel | null = statusToViewModel(status);
+        if (viewModel === null) {
           throw new Error(t.errorNoResult);
         }
-        setResult({
-          runId: status.run_id,
-          identity: status.result.identity,
-          findings: status.result.findings,
-          timeline: status.result.timeline,
-          verdict: status.result.verdict,
-        });
+        setResult(viewModel);
         setIsLoading(false);
         return;
       }
@@ -84,6 +82,7 @@ export function App() {
     setErrorMessage(null);
     setRunStatus(null);
     setResult(null);
+    setRunLocale(locale);
     activeRunIdRef.current = null;
 
     try {
@@ -139,14 +138,31 @@ export function App() {
     }
   }
 
+  async function handleRetryHhSearch(employerQuery: string): Promise<void> {
+    if (result === null) {
+      throw new Error(t.errorNoActiveRun);
+    }
+    const status: RunStatusResponse = await retryHhEmployerSearch(result.runId, employerQuery);
+    const viewModel: RunViewModel | null = statusToViewModel(status);
+    if (viewModel === null) {
+      throw new Error(t.errorNoResult);
+    }
+    setResult(viewModel);
+  }
+
   const isAwaitingIdentity: boolean = runStatus?.status === "awaiting_input";
+  const isLanguageLocked: boolean = isLoading || isAwaitingIdentity || result !== null;
+  const contentLocale: Locale = runLocale ?? locale;
 
   return (
     <main className="app">
       <header className="header">
         <div className="header-top">
           <div className="header-badge">{t.headerBadge}</div>
-          <LanguageToggle />
+          <LanguageToggle
+            disabled={isLanguageLocked}
+            lockedHint={isLanguageLocked ? t.languageLockedHint : undefined}
+          />
         </div>
         <h1>{t.headerTitle}</h1>
         <p>{t.headerSubtitle}</p>
@@ -168,7 +184,11 @@ export function App() {
       {errorMessage !== null ? <div className="error-banner">{errorMessage}</div> : null}
 
       {isLoading || isAwaitingIdentity ? (
-        <RunProgressCard status={runStatus} companyName={companyName.trim()} />
+        <RunProgressCard
+          status={runStatus}
+          companyName={companyName.trim()}
+          contentLocale={contentLocale}
+        />
       ) : null}
 
       {isAwaitingIdentity && runStatus !== null && runStatus.identity_candidates.length > 0 ? (
@@ -182,7 +202,13 @@ export function App() {
         />
       ) : null}
 
-      {result !== null ? <ResultsDashboard result={result} /> : null}
+      {result !== null ? (
+        <ResultsDashboard
+          result={result}
+          onRetryHhSearch={handleRetryHhSearch}
+          contentLocale={contentLocale}
+        />
+      ) : null}
     </main>
   );
 }

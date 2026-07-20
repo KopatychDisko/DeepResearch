@@ -10,6 +10,7 @@ import { HhVacanciesPanel } from "./HhVacanciesPanel";
 function renderPanel(
   hhVacancyAnalysis: typeof mockHhVacancyAnalysisFound,
   companyName: string,
+  locale: "en" | "ru" = "en",
 ): void {
   render(
     <LanguageProvider>
@@ -18,6 +19,8 @@ function renderPanel(
         <HhVacanciesPanel
           hhVacancyAnalysis={hhVacancyAnalysis}
           companyName={companyName}
+          onRetrySearch={async () => {}}
+          locale={locale}
         />
       </details>
     </LanguageProvider>,
@@ -54,6 +57,8 @@ describe("HhVacanciesPanel", () => {
           <HhVacanciesPanel
             hhVacancyAnalysis={mockHhVacancyAnalysisFound}
             companyName="Acme Corporation"
+            onRetrySearch={async () => {}}
+            locale="en"
           />
         </details>
       </LanguageProvider>,

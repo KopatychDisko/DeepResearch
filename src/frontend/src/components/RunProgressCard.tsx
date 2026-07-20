@@ -1,20 +1,31 @@
-import { useLanguage } from "../lib/i18n";
+import { getTranslations, type Locale, type Translations } from "../lib/i18n";
 import type { RunPhase, RunStatusResponse } from "../types";
 
 interface RunProgressCardProps {
   status: RunStatusResponse | null;
   companyName: string;
+  contentLocale: Locale;
 }
 
 const PHASE_STEPS: RunPhase[] = [
   "pending",
   "resolve_identity",
+  "analyze_hh_vacancies",
   "supervisor",
   "structure_events",
-  "merge_timeline",
   "generate_verdict",
   "completed",
 ];
+
+function progressPhase(phase: RunPhase): RunPhase {
+  if (phase === "merge_timeline") {
+    return "generate_verdict";
+  }
+  if (phase === "awaiting_identity") {
+    return "resolve_identity";
+  }
+  return phase;
+}
 
 const SOURCE_ICONS: Record<string, string> = {
   news: "📰",
@@ -22,20 +33,24 @@ const SOURCE_ICONS: Record<string, string> = {
   hh: "💼",
 };
 
-function phaseLabel(phase: RunPhase, t: ReturnType<typeof useLanguage>["t"]): string {
+function phaseLabel(phase: RunPhase, t: Translations): string {
   if (phase === "pending") return t.phasePending;
   if (phase === "resolve_identity") return t.phaseResolveIdentity;
   if (phase === "awaiting_identity") return t.phaseAwaitingIdentity;
+  if (phase === "analyze_hh_vacancies") return t.phaseAnalyzeHhVacancies;
   if (phase === "supervisor") return t.phaseSupervisor;
   if (phase === "structure_events") return t.phaseStructureEvents;
-  if (phase === "merge_timeline") return t.phaseMergeTimeline;
   if (phase === "generate_verdict") return t.phaseGenerateVerdict;
   return t.phaseCompleted;
 }
 
-export function RunProgressCard({ status, companyName }: RunProgressCardProps) {
-  const { t } = useLanguage();
-  const currentPhase: RunPhase = status?.phase ?? "pending";
+export function RunProgressCard({
+  status,
+  companyName,
+  contentLocale,
+}: RunProgressCardProps) {
+  const t: Translations = getTranslations(contentLocale);
+  const currentPhase: RunPhase = progressPhase(status?.phase ?? "pending");
   const currentIndex: number = PHASE_STEPS.indexOf(currentPhase);
   const progressPercent: number = Math.max(
     8,

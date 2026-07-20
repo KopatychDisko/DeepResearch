@@ -4,9 +4,9 @@ export const PHASE_STEPS: RunPhase[] = [
   "pending",
   "resolve_identity",
   "awaiting_identity",
+  "analyze_hh_vacancies",
   "supervisor",
   "structure_events",
-  "merge_timeline",
   "generate_verdict",
   "completed",
 ];
@@ -15,9 +15,10 @@ export const PHASE_LABELS: Record<RunPhase, string> = {
   pending: "Подготовка",
   resolve_identity: "Проверка компании",
   awaiting_identity: "Выбор компании",
+  analyze_hh_vacancies: "Вакансии hh.ru",
   supervisor: "Источники",
   structure_events: "События",
-  merge_timeline: "Таймлайн",
+  merge_timeline: "Вердикт",
   generate_verdict: "Вердикт",
   completed: "Готово",
 };

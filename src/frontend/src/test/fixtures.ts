@@ -60,6 +60,9 @@ export const mockRunViewModel: RunViewModel = {
 
 export const mockHhVacancyAnalysisFound: HhVacancyAnalysis = {
   status: "found",
+  message: "Found 2 active vacancies on hh.ru for «Acme Corporation».",
+  search_queries_tried: ["Acme Corporation"],
+  matched_search_query: "Acme Corporation",
   employer_name: "Acme Corporation",
   employer_url: "https://hh.ru/employer/12345",
   employer_rating: 4.2,
@@ -90,6 +93,9 @@ export const mockHhVacancyAnalysisFound: HhVacancyAnalysis = {
 
 export const mockHhVacancyAnalysisNotFound: HhVacancyAnalysis = {
   status: "not_found",
+  message: 'Employer not found on hh.ru for "Acme Corporation".',
+  search_queries_tried: ["Acme Corporation", "Acme"],
+  matched_search_query: null,
   employer_name: null,
   employer_url: null,
   employer_rating: null,

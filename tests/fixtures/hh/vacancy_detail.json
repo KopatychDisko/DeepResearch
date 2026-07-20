@@ -10,5 +10,8 @@
   "working_days": [{"name": "5/2"}],
   "working_time_modes": [{"name": "Полный день"}],
   "published_at": "2026-07-15T10:00:00+0300",
-  "description": "Разработка backend-сервисов на Python."
+  "archived": false,
+  "key_skills": [{"name": "Python"}, {"name": "FastAPI"}],
+  "description": "<p>Разработка backend-сервисов на Python.</p>",
+  "employer": {"trusted": true}
 }

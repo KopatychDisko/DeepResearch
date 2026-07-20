@@ -108,8 +108,10 @@ export function VerdictCard({ verdict, companyName }: VerdictCardProps) {
         </section>
       ) : null}
 
-      <section className="insight-section evidence">
-        <h3>{t.evidenceTitle}</h3>
+      <details className="collapsible-section insight-section evidence">
+        <summary className="collapsible-summary">
+          {t.evidenceTitle} ({verdict.evidence_links.length})
+        </summary>
         {verdict.evidence_links.length > 0 ? (
           <ul className="evidence-list">
             {verdict.evidence_links.map((link) => (
@@ -136,7 +138,7 @@ export function VerdictCard({ verdict, companyName }: VerdictCardProps) {
         ) : (
           <p className="empty-state">{t.evidenceEmpty}</p>
         )}
-      </section>
+      </details>
     </article>
   );
 }

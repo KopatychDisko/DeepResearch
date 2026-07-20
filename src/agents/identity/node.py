@@ -104,6 +104,6 @@ def resolve_identity_step(
         update={
             "identity": dump_company_identity(resolution.identity),
             "identity_candidates": dump_company_candidates(resolution.candidates),
-            **_phase_update(RunPhase.RESOLVE_IDENTITY),
+            **_phase_update(RunPhase.ANALYZE_HH_VACANCIES),
         },
     )

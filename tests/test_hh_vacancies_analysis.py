@@ -17,6 +17,7 @@ from agents.models import (
     HhEmployerRating,
     HhVacancyItem,
     HhVacancyStatus,
+    ResponseLanguage,
     StructuredHhVacancyAssessment,
 )
 
@@ -37,6 +38,11 @@ def _identity() -> CompanyIdentity:
 
 def _settings() -> Configuration:
     return Configuration(hh_api_user_agent=USER_AGENT)
+
+
+@pytest.fixture(autouse=True)
+def _configured_hh_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HH_API_USER_AGENT", USER_AGENT)
 
 
 def _run_config() -> RunnableConfig:
@@ -83,20 +89,36 @@ def _mock_client(
     vacancies: list[HhVacancyItem],
 ) -> MagicMock:
     client = MagicMock()
-    client.search_employer_by_name.return_value = search_result
+
+    def _list_employer_search_items(search_text: str) -> list[dict[str, object]]:
+        _ = search_text
+        if search_result is None:
+            return []
+        employer_id, employer_name = search_result
+        return [{"id": employer_id, "name": employer_name}]
+
+    client.collect_employer_candidates.side_effect = _list_employer_search_items
     client.fetch_employer_profile.return_value = rating
-    client.fetch_active_vacancies.return_value = vacancies
+    client.fetch_enriched_active_vacancies.return_value = vacancies
     return client
 
 
-def test_not_found_returns_empty_vacancies_and_explicit_message() -> None:
+def test_not_found_returns_empty_vacancies_and_explicit_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     client = _mock_client(search_result=None, rating=None, vacancies=[])
+    monkeypatch.setattr(
+        "agents.hh_vacancies.analysis._reformulate_hh_search_queries",
+        lambda **_kwargs: [],
+    )
 
     analysis = build_hh_vacancy_analysis(
         identity=_identity(),
         settings=_settings(),
         client=client,
         config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.RU,
     )
 
     assert analysis.status == HhVacancyStatus.NOT_FOUND
@@ -146,6 +168,8 @@ def test_found_path_calls_invoke_structured_output_when_vacancies_present(
         settings=_settings(),
         client=client,
         config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.EN,
     )
 
     assert analysis.status == HhVacancyStatus.FOUND
@@ -153,6 +177,7 @@ def test_found_path_calls_invoke_structured_output_when_vacancies_present(
     assert len(invoke_calls) == 1
     assert invoke_calls[0]["model_class"] is StructuredHhVacancyAssessment
     assert "10000001" in invoke_calls[0]["prompt"]
+    assert "Write all user-facing text fields in English." in invoke_calls[0]["prompt"]
     assert analysis.salary_summary == "Salaries range from 200k to 300k RUR."
     assert "Employer rating on hh.ru: 4.2/5." in analysis.conditions_summary
 
@@ -182,6 +207,8 @@ def test_zero_vacancies_found_uses_rule_based_summaries_without_llm(
         settings=_settings(),
         client=client,
         config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.EN,
     )
 
     assert analysis.status == HhVacancyStatus.FOUND
@@ -222,11 +249,13 @@ def test_found_path_never_returns_more_than_ten_vacancies(
         settings=_settings(),
         client=client,
         config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.RU,
     )
 
     assert analysis.status == HhVacancyStatus.FOUND
     assert len(analysis.vacancies) <= 10
-    client.fetch_active_vacancies.assert_called_once_with("1740", 10)
+    client.fetch_enriched_active_vacancies.assert_called_once_with("1740", 10)
 
 
 def test_unavailable_rating_uses_explicit_text_without_invented_score(
@@ -269,6 +298,8 @@ def test_unavailable_rating_uses_explicit_text_without_invented_score(
         settings=_settings(),
         client=client,
         config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.RU,
     )
 
     assert analysis.employer is not None
@@ -276,17 +307,45 @@ def test_unavailable_rating_uses_explicit_text_without_invented_score(
     assert "unavailable" in analysis.conditions_summary.lower()
 
 
-def test_error_path_returns_error_status_with_empty_vacancies() -> None:
+def test_error_path_returns_error_status_with_empty_vacancies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     client = MagicMock()
-    client.search_employer_by_name.side_effect = RuntimeError("HH API unavailable")
+    client.collect_employer_candidates.side_effect = RuntimeError("HH API unavailable")
+    monkeypatch.setattr(
+        "agents.hh_vacancies.analysis._reformulate_hh_search_queries",
+        lambda **_kwargs: [],
+    )
 
     analysis = build_hh_vacancy_analysis(
         identity=_identity(),
         settings=_settings(),
         client=client,
         config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.RU,
     )
 
     assert analysis.status == HhVacancyStatus.ERROR
     assert analysis.vacancies == []
     assert "HH API unavailable" in analysis.message
+
+
+def test_missing_hh_user_agent_returns_error_without_api_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HH_API_USER_AGENT", raising=False)
+    client = MagicMock()
+
+    analysis = build_hh_vacancy_analysis(
+        identity=_identity(),
+        settings=Configuration(hh_api_user_agent="EmployerDD/1.0 (contact@example.com)"),
+        client=client,
+        config=_run_config(),
+        search_query_override=None,
+        response_language=ResponseLanguage.RU,
+    )
+
+    assert analysis.status == HhVacancyStatus.ERROR
+    assert "HH.ru API requires a registered User-Agent" in analysis.message
+    client.collect_employer_candidates.assert_not_called()

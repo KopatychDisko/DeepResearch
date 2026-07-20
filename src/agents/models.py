@@ -85,6 +85,14 @@ class IdentityConfirmationRequest(BaseModel):
     candidate_id: str = Field(min_length=1)
 
 
+class HhEmployerSearchRequest(BaseModel):
+    """Manual hh.ru employer search retry query for a completed run."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    employer_query: str = Field(min_length=1)
+
+
 class RawFinding(BaseModel):
     """Source-grounded snippet collected before event structuring."""
 
@@ -381,6 +389,10 @@ class HhVacancyItem(BaseModel):
     experience: str | None
     working_conditions: list[str]
     published_at: str | None
+    archived: bool | None = None
+    key_skills: list[str] = Field(default_factory=list)
+    description_plain: str | None = None
+    employer_trusted: bool | None = None
     salary_text: str | None = None
     location_text: str | None = None
     schedule_text: str | None = None
@@ -442,6 +454,14 @@ class StructuredHhVacancyAssessment(BaseModel):
     employer_rating_text: str = Field(min_length=1)
 
 
+class StructuredHhEmployerSearchReformulation(BaseModel):
+    """Structured LLM output with alternate hh.ru employer search strings."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search_queries: list[str] = Field(min_length=1, max_length=5)
+
+
 class HhVacancyAnalysis(BaseModel):
     """Structured hh.ru vacancy assessment block stored separately from timeline."""
 
@@ -455,6 +475,8 @@ class HhVacancyAnalysis(BaseModel):
     salary_summary: str
     conditions_summary: str
     fetched_at: str
+    search_queries_tried: list[str] = Field(default_factory=list)
+    matched_search_query: str | None = None
     employer_name: str | None = None
     employer_profile_url: str | None = None
     employer_rating: float | None = None

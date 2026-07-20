@@ -23,6 +23,6 @@ def merge_timeline_step(state: ResearchRunState) -> Command[Literal["generate_ve
         goto="generate_verdict",
         update={
             "timeline": dump_canonical_timeline(timeline),
-            **_phase_update(RunPhase.MERGE_TIMELINE),
+            **_phase_update(RunPhase.GENERATE_VERDICT),
         },
     )

@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from agents.models import (
+    HhEmployerSearchRequest,
     IdentityConfirmationRequest,
     ResearchRunResult,
     RunLifecycleStatus,
@@ -26,6 +27,7 @@ from backend.run_service import (
     continue_research_run_background,
     get_research_run_status,
     resume_research_run,
+    retry_hh_employer_search,
     run_research_pipeline,
     start_research_run_background,
     validate_identity_confirmation_request,
@@ -130,6 +132,18 @@ def create_app() -> FastAPI:
             phase=RunPhase.ANALYZE_HH_VACANCIES,
             message="Identity confirmed. Research resumed in background.",
         )
+
+    @app.post("/runs/{run_id}/hh-search", response_model=RunStatusResponse)
+    def retry_hh_search(run_id: UUID, request: HhEmployerSearchRequest) -> RunStatusResponse:
+        try:
+            retry_hh_employer_search(run_id=run_id, employer_query=request.employer_query)
+            return get_research_run_status(run_id=run_id)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        except RuntimeError as error:
+            _raise_runtime_configuration_error(error)
 
     @app.get("/runs/{run_id}", response_model=RunStatusResponse)
     def get_run_status(run_id: UUID) -> RunStatusResponse:

@@ -8,6 +8,7 @@ export type RunPhase =
   | "pending"
   | "resolve_identity"
   | "awaiting_identity"
+  | "analyze_hh_vacancies"
   | "supervisor"
   | "structure_events"
   | "merge_timeline"
@@ -100,7 +101,7 @@ export interface RawFinding {
   metadata: RetrievalMetadata;
 }
 
-export type HhEmployerStatus = "found" | "not_found";
+export type HhEmployerStatus = "found" | "not_found" | "error";
 
 export interface HhVacancyItem {
   vacancy_id: string;
@@ -114,6 +115,9 @@ export interface HhVacancyItem {
 
 export interface HhVacancyAnalysis {
   status: HhEmployerStatus;
+  message: string;
+  search_queries_tried: string[];
+  matched_search_query: string | null;
   employer_name: string | null;
   employer_url: string | null;
   employer_rating: number | null;
@@ -125,6 +129,9 @@ export interface HhVacancyAnalysis {
 
 export interface HhVacancyAnalysisApi {
   status: HhEmployerStatus | "error";
+  message: string;
+  search_queries_tried?: string[];
+  matched_search_query?: string | null;
   employer_name: string | null;
   employer_profile_url: string | null;
   employer_rating: number | null;

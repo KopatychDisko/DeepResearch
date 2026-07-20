@@ -57,6 +57,7 @@ export interface Translations {
   phasePending: string;
   phaseResolveIdentity: string;
   phaseAwaitingIdentity: string;
+  phaseAnalyzeHhVacancies: string;
   phaseSupervisor: string;
   phaseStructureEvents: string;
   phaseMergeTimeline: string;
@@ -89,6 +90,13 @@ export interface Translations {
   hhEmployerProfile: string;
   hhRatingAria: string;
   hhVacanciesCount: string;
+  hhRetryLabel: string;
+  hhRetryPlaceholder: string;
+  hhRetrySubmit: string;
+  hhRetrySubmitting: string;
+  hhRetryError: string;
+  hhApiErrorHint: string;
+  languageLockedHint: string;
 }
 
 const translations: Record<Locale, Translations> = {
@@ -147,6 +155,7 @@ const translations: Record<Locale, Translations> = {
     phasePending: "Подготовка",
     phaseResolveIdentity: "Проверка компании",
     phaseAwaitingIdentity: "Выбор компании",
+    phaseAnalyzeHhVacancies: "Вакансии hh.ru",
     phaseSupervisor: "Источники",
     phaseStructureEvents: "События",
     phaseMergeTimeline: "Таймлайн",
@@ -180,6 +189,13 @@ const translations: Record<Locale, Translations> = {
     hhEmployerProfile: "Профиль работодателя на hh.ru",
     hhRatingAria: "Рейтинг работодателя",
     hhVacanciesCount: "вакансий",
+    hhRetryLabel: "Поискать на hh.ru по другому названию",
+    hhRetryPlaceholder: "Например: Сбер или Сбербанк",
+    hhRetrySubmit: "Найти на hh.ru",
+    hhRetrySubmitting: "Ищем...",
+    hhRetryError: "Не удалось повторить поиск на hh.ru.",
+    hhApiErrorHint: "Зарегистрируйте приложение на dev.hh.ru и задайте HH_API_USER_AGENT в .env.",
+    languageLockedHint: "Язык фиксируется на время анализа",
   },
   en: {
     headerBadge: "Employer DD",
@@ -235,6 +251,7 @@ const translations: Record<Locale, Translations> = {
     phasePending: "Setup",
     phaseResolveIdentity: "Company check",
     phaseAwaitingIdentity: "Choose company",
+    phaseAnalyzeHhVacancies: "HH vacancies",
     phaseSupervisor: "Sources",
     phaseStructureEvents: "Events",
     phaseMergeTimeline: "Timeline",
@@ -268,6 +285,13 @@ const translations: Record<Locale, Translations> = {
     hhEmployerProfile: "Employer profile on hh.ru",
     hhRatingAria: "Employer rating",
     hhVacanciesCount: "vacancies",
+    hhRetryLabel: "Search hh.ru with a different employer name",
+    hhRetryPlaceholder: "For example: Sber or Sberbank",
+    hhRetrySubmit: "Search on hh.ru",
+    hhRetrySubmitting: "Searching...",
+    hhRetryError: "Failed to retry hh.ru search.",
+    hhApiErrorHint: "Register an app at dev.hh.ru and set HH_API_USER_AGENT in .env.",
+    languageLockedHint: "Language is locked while analysis is in progress",
   },
 };
 
@@ -285,6 +309,10 @@ export function readStoredLocale(): Locale {
     return "en";
   }
   return "ru";
+}
+
+export function getTranslations(locale: Locale): Translations {
+  return translations[locale];
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

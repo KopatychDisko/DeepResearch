@@ -35,8 +35,20 @@ def _message_content_to_text(message: BaseMessage) -> str:
     raise TypeError(f"Unsupported message content type: {type(content_value).__name__}")
 
 
-def _parse_json_payload(raw_text: str) -> dict[str, object]:
+def _strip_markdown_json_fence(raw_text: str) -> str:
     stripped_text: str = raw_text.strip()
+    if not stripped_text.startswith("```"):
+        return stripped_text
+    lines: list[str] = stripped_text.splitlines()
+    if lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
+def _parse_json_payload(raw_text: str) -> dict[str, object]:
+    stripped_text: str = _strip_markdown_json_fence(raw_text=raw_text.strip())
     if not stripped_text:
         raise TypeError("Structured JSON payload is empty")
     repaired_payload: object = json_repair.loads(stripped_text)
@@ -52,6 +64,14 @@ def _json_text_to_model(raw_text: str, model_class: Type[ModelType]) -> ModelTyp
     return model_class.model_validate(payload)
 
 
+def _dict_to_model(payload: dict[str, object], model_class: Type[ModelType]) -> ModelType:
+    try:
+        return model_class.model_validate(payload)
+    except ValidationError:
+        serialized_payload: str = json.dumps(payload, ensure_ascii=False)
+        return _json_text_to_model(raw_text=serialized_payload, model_class=model_class)
+
+
 def coerce_structured_output(output: object, model_class: Type[ModelType]) -> ModelType:
     """Coerce a model instance, dict, JSON string, or message into the target Pydantic class."""
     if output is None:
@@ -62,7 +82,7 @@ def coerce_structured_output(output: object, model_class: Type[ModelType]) -> Mo
     if isinstance(output, model_class):
         return output
     if isinstance(output, dict):
-        return model_class.model_validate(output)
+        return _dict_to_model(payload=output, model_class=model_class)
     if isinstance(output, str):
         return _json_text_to_model(raw_text=output, model_class=model_class)
     if isinstance(output, BaseMessage):
@@ -100,7 +120,11 @@ def invoke_structured_output(
     last_error: Exception | None = None
 
     for _attempt_index in range(settings.max_structured_output_retries):
-        candidate_output: object = structured_model.invoke(json_prompt)
+        try:
+            candidate_output: object = structured_model.invoke(json_prompt)
+        except Exception as error:
+            last_error = error
+            continue
         if candidate_output is None:
             continue
         try:
@@ -109,11 +133,17 @@ def invoke_structured_output(
             last_error = error
 
     text_model = create_llm_text_model(config=config)
-    raw_response: object = text_model.invoke(json_prompt)
     try:
-        return coerce_structured_output(output=raw_response, model_class=model_class)
-    except (TypeError, ValidationError, ValueError) as error:
+        raw_response: object = text_model.invoke(json_prompt)
+    except Exception as error:
         last_error = error
+        raw_response = None
+
+    if raw_response is not None:
+        try:
+            return coerce_structured_output(output=raw_response, model_class=model_class)
+        except (TypeError, ValidationError, ValueError) as error:
+            last_error = error
 
     if last_error is None:
         raise RuntimeError(

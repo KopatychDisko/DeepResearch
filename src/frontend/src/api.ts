@@ -94,9 +94,12 @@ export async function fetchRunStatus(runId: string): Promise<RunStatusResponse> 
 
 function mapHhVacancyAnalysis(api: HhVacancyAnalysisApi): HhVacancyAnalysis {
   const status: HhVacancyAnalysis["status"] =
-    api.status === "found" ? "found" : "not_found";
+    api.status === "found" ? "found" : api.status === "error" ? "error" : "not_found";
   return {
     status,
+    message: api.message,
+    search_queries_tried: api.search_queries_tried ?? [],
+    matched_search_query: api.matched_search_query ?? null,
     employer_name: api.employer_name,
     employer_url: api.employer_profile_url,
     employer_rating: api.employer_rating,
@@ -113,6 +116,21 @@ function mapHhVacancyAnalysis(api: HhVacancyAnalysisApi): HhVacancyAnalysis {
       published_at: vacancy.published_at,
     })),
   };
+}
+
+export async function retryHhEmployerSearch(
+  runId: string,
+  employerQuery: string,
+): Promise<RunStatusResponse> {
+  const response = await fetch(`/runs/${runId}/hh-search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ employer_query: employerQuery.trim() }),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return response.json() as Promise<RunStatusResponse>;
 }
 
 export function statusToViewModel(status: RunStatusResponse): RunViewModel | null {

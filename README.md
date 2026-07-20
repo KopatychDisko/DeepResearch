@@ -1,46 +1,113 @@
 # Employer Due Diligence Agent
 
-AI-powered employer research for job seekers. Enter a company name — get a structured verdict with red flags, risks, and source links in minutes.
+AI-сервис для проверки работодателя перед собеседованием. Вы вводите компанию — система собирает открытые сигналы, строит хронологию и выдает итоговый вердикт с рисками, красными флагами и ссылками на источники.
 
-Built with **LangGraph**, **FastAPI**, and **React**. Supports **Russian** and **English** UI and responses.
-
----
-
-## What it does
-
-1. **Resolves company identity** — web search + LLM; if several matches exist, you pick the right one
-2. **Researches in parallel** — news, employee reviews, hh.ru hiring signals
-3. **Builds a timeline** — merges and deduplicates events from all sources
-4. **Generates a verdict** — score 1–10, summary, red flags, risks, interesting facts
-
-Every claim is tied to a source URL.
+Стек: LangGraph + FastAPI + React. Интерфейс и ответы поддерживают русский и английский языки.
 
 ---
 
-## Quick start
+## Что умеет продукт
 
-### Requirements
+- Разрешает неоднозначные названия компаний (human-in-the-loop выбор кандидата).
+- Анализирует вакансии HH.ru отдельным блоком: зарплаты, формат работы, рейтинг работодателя.
+- Запускает агентный ресерч по новостям/отзывам/фактам компании.
+- Собирает структурированные события и объединяет их в единую timeline.
+- Формирует итоговый verdict (оценка 1–10, summary, risks, red flags, interesting facts).
+- Показывает все использованные источники, чтобы можно было вручную проверить выводы.
+
+---
+
+## Как работает агент (end-to-end)
+
+```text
+1) resolve_identity
+   └─ если найдена неоднозначность: статус awaiting_input и выбор компании в UI
+2) analyze_hh_vacancies
+   └─ отдельный HH-блок до основного supervisor-цикла
+3) supervisor + tools loop
+   └─ поисковые/исследовательские вызовы
+4) structure_events
+5) merge_timeline
+6) generate_verdict
+```
+
+Порядок узлов зафиксирован в пайплайне:
+- `resolve_identity → analyze_hh_vacancies → supervisor → ... → generate_verdict`
+
+---
+
+## Архитектура
+
+```text
+┌───────────────────────────────────────────────────────────────────────────┐
+│ React UI (RU/EN, progress, identity picker, HH panel, verdict dashboard) │
+└───────────────────────────────┬───────────────────────────────────────────┘
+                                │ HTTP
+┌───────────────────────────────▼───────────────────────────────────────────┐
+│ FastAPI                                                                    │
+│ POST /runs · GET /runs/{id} · POST /runs/{id}/identity · POST /runs/{id}/ │
+│ hh-search · POST /runs/{id}/resume · GET /health                           │
+└───────────────────────────────┬───────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼───────────────────────────────────────────┐
+│ LangGraph research pipeline                                                │
+│ resolve_identity → analyze_hh_vacancies → supervisor/tools loop →          │
+│ structure_events → merge_timeline → generate_verdict                       │
+└───────────────────────────────┬───────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼───────────────────────────────────────────┐
+│ External services: Tavily, LLM provider (OpenRouter/OpenAI/Google),      │
+│ HH.ru API + website fallback, optional Langfuse                           │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Скриншоты интерфейса
+
+> Добавьте изображения в `docs/images/` и они автоматически отобразятся в README.
+
+### 1. Итоговый дашборд (verdict + sources)
+![Verdict dashboard](docs/images/dashboard.png)
+
+### 2. Блок HH.ru анализа вакансий
+![HH vacancies panel](docs/images/hh-vacancies.png)
+
+### 3. Экран выбора компании при неоднозначности
+![Identity picker](docs/images/identity-picker.png)
+
+### 4. Карточка прогресса выполнения run
+![Run progress](docs/images/run-progress.png)
+
+### 5. Ошибка: компания не подтверждена
+![Company not confirmed](docs/images/no-company.png)
+
+### 6. Блок источников (sources)
+![Sources panel](docs/images/sources.png)
+
+---
+
+## Быстрый старт
+
+### Требования
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
-- Node.js 20+ (frontend build)
-- API keys: [OpenRouter](https://openrouter.ai/) or OpenAI/Google, plus [Tavily](https://tavily.com/)
+- Node.js 20+
+- Ключи: минимум один LLM-провайдер + Tavily
 
-### Setup
+### Установка и запуск
 
 ```bash
 git clone <your-repo-url>
 cd deep_resaerch
-
 cp .env.example .env
-# Fill in OPENROUTER_API_KEY (or OPENAI_API_KEY) and TAVILY_API_KEY
-
 ./start.sh
 ```
 
-Opens at **http://127.0.0.1:8000** — builds the frontend and starts the server.
+Приложение будет доступно на `http://127.0.0.1:8000`.
 
-### CLI (one-shot run)
+### One-shot CLI прогон
 
 ```bash
 uv run python scripts/e2e_run.py "Яндекс"
@@ -48,53 +115,25 @@ uv run python scripts/e2e_run.py "Яндекс"
 
 ---
 
-## Configuration
-
-Copy `.env.example` → `.env`:
+## Конфигурация (`.env`)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENROUTER_API_KEY` | one of LLM keys | Default LLM provider |
-| `OPENAI_API_KEY` | one of LLM keys | Alternative provider |
-| `GOOGLE_API_KEY` | one of LLM keys | Alternative provider |
-| `TAVILY_API_KEY` | yes | Web search |
-| `LLM_MODEL` | no | Default: `openai:gpt-5-mini` |
-| `LANGFUSE_PUBLIC_KEY` | no | Observability (Langfuse) |
-| `LANGFUSE_SECRET_KEY` | no | Observability (Langfuse) |
-| `LANGFUSE_BASE_URL` | no | e.g. `https://us.cloud.langfuse.com` |
+| `OPENROUTER_API_KEY` | one of LLM keys | Основной LLM-провайдер |
+| `OPENAI_API_KEY` | one of LLM keys | Альтернативный LLM-провайдер |
+| `GOOGLE_API_KEY` | one of LLM keys | Альтернативный LLM-провайдер |
+| `TAVILY_API_KEY` | yes | Веб-поиск для ресерча |
+| `LLM_MODEL` | no | Переопределение модели (по умолчанию `openai:gpt-5-mini`) |
+| `HH_API_USER_AGENT` | recommended | User-Agent для HH API (формат: `App/1.0 (email)`) |
+| `LANGFUSE_PUBLIC_KEY` | no | Langfuse observability |
+| `LANGFUSE_SECRET_KEY` | no | Langfuse observability |
+| `LANGFUSE_BASE_URL` | no | Пример: `https://us.cloud.langfuse.com` |
+| `LANGFUSE_RELEASE` | no | Метка релиза для трейсинга |
 
----
+### Важно про HH.ru
 
-## Architecture
-
-```
-┌─────────────┐     ┌──────────────────────────────────────────────┐
-│  React UI   │────▶│  FastAPI                                     │
-│  RU / EN    │     │  POST /runs  ·  GET /runs/{id}  ·  /identity │
-└─────────────┘     └────────────────────┬─────────────────────────┘
-                                         │
-                         ┌───────────────▼───────────────┐
-                         │  LangGraph pipeline           │
-                         │                               │
-                         │  resolve_identity             │
-                         │       ↓                       │
-                         │  supervisor (tool loop)       │
-                         │    · search_news              │
-                         │    · search_reviews           │
-                         │    · search_hh                │
-                         │       ↓                       │
-                         │  structure_events → merge     │
-                         │       ↓                       │
-                         │  generate_verdict             │
-                         └───────────────┬───────────────┘
-                                         │
-                         ┌───────────────▼───────────────┐
-                         │  Tavily  ·  OpenRouter LLM    │
-                         │  Langfuse (optional traces)   │
-                         └───────────────────────────────┘
-```
-
-**Human-in-the-loop:** if identity is ambiguous, the run pauses at `awaiting_input`. Pick a company in the UI — research continues automatically.
+- Если `api.hh.ru` отвечает `403 forbidden`, система использует fallback через публичные web-страницы HH.
+- Повторный поиск работодателя доступен прямо из UI и через API (`POST /runs/{run_id}/hh-search`).
 
 ---
 
@@ -102,63 +141,53 @@ Copy `.env.example` → `.env`:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/runs?background=true` | Start async research |
-| `GET` | `/runs/{run_id}` | Poll status and result |
-| `POST` | `/runs/{run_id}/identity` | Confirm company after ambiguous match |
-| `POST` | `/runs/{run_id}/resume` | Resume interrupted run |
+| `GET` | `/health` | Проверка здоровья сервиса |
+| `POST` | `/runs?background=true` | Старт асинхронного исследования |
+| `GET` | `/runs/{run_id}` | Статус и результат run |
+| `POST` | `/runs/{run_id}/identity` | Подтверждение компании после disambiguation |
+| `POST` | `/runs/{run_id}/hh-search` | Ручной retry HH employer search |
+| `POST` | `/runs/{run_id}/resume` | Возобновление прерванного run |
 
-Example:
+Пример старта run:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/runs?background=true \
+curl -X POST "http://127.0.0.1:8000/runs?background=true" \
   -H "Content-Type: application/json" \
-  -d '{"company_name": "Яндекс", "response_language": "ru"}'
+  -d '{"company_name":"Яндекс","response_language":"ru"}'
 ```
 
 ---
 
-## Development
+## Feature tour в UI
+
+1. **Company form** — ввод названия, URL и контекста компании.
+2. **Progress card** — текущая фаза пайплайна, статус выполнения.
+3. **Identity picker** — появляется, если найдено несколько кандидатов компании.
+4. **Verdict card** — итоговая оценка, ключевые риски и выводы.
+5. **HH vacancies panel** — отдельный анализ рынка найма компании на HH.
+6. **Source links** — все найденные источники для проверки выводов.
+7. **Language lock** — язык run фиксируется во время выполнения, чтобы избежать смешивания RU/EN в одном отчете.
+
+---
+
+## Разработка
 
 ```bash
-# Install dependencies
 uv sync
-
-# Run tests (excludes eval suite)
 uv run pytest
-
-# Frontend dev server (proxies to API)
 cd src/frontend && npm install && npm run dev
-
-# API only
 uv run uvicorn backend.main:app --reload
 ```
 
-After this package rename, if resume of old LangGraph threads fails, wipe or reset local checkpointer SQLite under `.planning/checkpoints/` (module paths in stored checkpoints are not dual-compatible).
-
 ---
 
-## Tech stack
+## Структура проекта
 
-| Layer | Tools |
-|-------|-------|
-| Orchestration | LangGraph, LangChain |
-| API | FastAPI, Uvicorn |
-| LLM | OpenRouter / OpenAI / Google via LangChain |
-| Search | Tavily |
-| Frontend | React 19, TypeScript, Vite |
-| Observability | Langfuse (optional) |
-| Quality | pytest, DeepEval (eval suite) |
-
----
-
-## Project structure
-
-```
-src/agents/              # Domain + LangGraph pipeline (per-subagent folders)
-src/backend/             # FastAPI, serve, run orchestration
-src/frontend/            # React UI (Vite)
-tests/                   # Unit tests
-scripts/e2e_run.py       # CLI smoke test
-eval/                    # DeepEval datasets (optional)
+```text
+src/agents/      # LangGraph пайплайн и доменная логика агентов
+src/backend/     # FastAPI API + жизненный цикл run
+src/frontend/    # React UI
+tests/           # Unit/integration tests
+scripts/         # CLI сценарии
+eval/            # Eval datasets и сценарии оценки качества
 ```

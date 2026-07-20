@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { LanguageProvider } from "../lib/i18n";
 import type { EmployerVerdict } from "../types";
@@ -32,12 +33,18 @@ describe("VerdictCard", () => {
     expect(screen.getByRole("heading", { name: /Interesting facts/i })).toBeInTheDocument();
   });
 
-  it("shows evidence section title and https source links (UX-03)", () => {
+  it("hides evidence until expanded and shows https source links (UX-03)", async () => {
+    const user = userEvent.setup();
     renderVerdictCard(mockVerdict);
-    expect(screen.getByRole("heading", { name: /Verdict evidence/i })).toBeInTheDocument();
+
     expect(
       screen.getByText("Company announced a 10% workforce reduction"),
-    ).toBeInTheDocument();
+    ).not.toBeVisible();
+
+    await user.click(screen.getByText(/Verdict evidence \(1\)/));
+    expect(
+      screen.getByText("Company announced a 10% workforce reduction"),
+    ).toBeVisible();
     expect(screen.getByText("Layoffs")).toBeInTheDocument();
     expect(screen.getByText("2024-03-15")).toBeInTheDocument();
     const link: HTMLAnchorElement = screen.getByRole("link", { name: "example.com" });
@@ -46,13 +53,15 @@ describe("VerdictCard", () => {
     expect(link).toHaveAttribute("rel", "noreferrer");
   });
 
-  it("shows evidence empty copy when evidence_links is empty (UX-03)", () => {
+  it("shows evidence empty copy when expanded and evidence_links is empty (UX-03)", async () => {
+    const user = userEvent.setup();
     const emptyEvidence: EmployerVerdict = {
       ...mockVerdict,
       evidence_links: [],
     };
     renderVerdictCard(emptyEvidence);
-    expect(screen.getByRole("heading", { name: /Verdict evidence/i })).toBeInTheDocument();
+
+    await user.click(screen.getByText(/Verdict evidence \(0\)/));
     expect(screen.getByText("No linked sources for this verdict.")).toBeInTheDocument();
   });
 
@@ -67,6 +76,6 @@ describe("VerdictCard", () => {
     expect(screen.queryByRole("heading", { name: /Red flags/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Interesting facts/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Risks/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Verdict evidence/i })).toBeInTheDocument();
+    expect(screen.getByText(/Verdict evidence \(1\)/)).toBeInTheDocument();
   });
 });

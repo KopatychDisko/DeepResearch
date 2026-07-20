@@ -42,7 +42,11 @@ from agents.graph_state import (
     load_run_request,
     is_hh_vacancy_analysis_pending,
 )
-from agents.hh_vacancies.analysis import build_pending_hh_vacancy_analysis
+from agents.hh_vacancies.analysis import (
+    build_hh_vacancy_analysis,
+    build_pending_hh_vacancy_analysis,
+)
+from agents.hh_vacancies.client import HhApiClient
 from agents.identity.resolution import (
     candidate_to_identity,
     find_candidate_by_id,
@@ -612,6 +616,48 @@ def continue_research_run_background(
         thread_name=f"research-run-continue-{run_id}",
         target=_background_worker,
     )
+
+
+def retry_hh_employer_search(run_id: UUID, employer_query: str) -> ResearchRunResult:
+    """Re-run hh.ru employer search for a completed run using a manual query override."""
+    settings = Configuration()
+    execution_context: RunExecutionContext = _build_checkpointer_context(
+        settings=settings,
+        run_id=run_id,
+    )
+
+    with _compiled_research_graph(settings=settings) as compiled_graph:
+        state_snapshot = compiled_graph.get_state(config=execution_context.run_config)
+        if state_snapshot.values is None or not state_snapshot.values:
+            raise LookupError(f"Run not found: {run_id}")
+        state: ResearchRunState = state_snapshot.values
+        status: RunLifecycleStatus = _status_from_state(state=state)
+        if status != RunLifecycleStatus.COMPLETED:
+            raise ValueError(f"Run {run_id} must be completed before HH search retry.")
+
+        identity = load_company_identity(state["identity"])
+        request = load_run_request(state["request"])
+        client: HhApiClient = HhApiClient(settings)
+        try:
+            analysis = build_hh_vacancy_analysis(
+                identity=identity,
+                settings=settings,
+                client=client,
+                config=execution_context.run_config,
+                search_query_override=employer_query,
+                response_language=request.response_language,
+            )
+        finally:
+            client.close()
+
+        compiled_graph.update_state(
+            execution_context.run_config,
+            {"hh_vacancy_analysis": dump_hh_vacancy_analysis(analysis)},
+        )
+        updated_snapshot = compiled_graph.get_state(config=execution_context.run_config)
+        if updated_snapshot.values is None or not updated_snapshot.values:
+            raise RuntimeError(f"Failed to persist HH analysis for run {run_id}")
+        return _state_to_result(state=updated_snapshot.values)
 
 
 def get_research_run_status(run_id: UUID) -> RunStatusResponse:

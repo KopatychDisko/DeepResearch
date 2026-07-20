@@ -10,10 +10,14 @@ import {
   mockRunViewModelWithHh,
 } from "../test/fixtures";
 
-function renderDashboard(result: RunViewModel = mockRunViewModel): void {
+function renderDashboard(result: RunViewModel = mockRunViewModel, contentLocale: "en" | "ru" = "en"): void {
   render(
     <LanguageProvider>
-      <ResultsDashboard result={result} />
+      <ResultsDashboard
+        result={result}
+        onRetryHhSearch={async () => {}}
+        contentLocale={contentLocale}
+      />
     </LanguageProvider>,
   );
 }
@@ -45,24 +49,18 @@ describe("ResultsDashboard", () => {
     expect(screen.getByText("No sources collected.")).toBeInTheDocument();
   });
 
-  it("hides HH vacancy content until the user expands the HH section", async () => {
-    const user = userEvent.setup();
+  it("shows HH vacancy content when HH section is open by default", () => {
     renderDashboard(mockRunViewModelWithHh);
 
-    expect(screen.getByText("Senior Backend Engineer")).not.toBeVisible();
-
-    await user.click(screen.getByText(/HH vacancies \(2\)/));
     expect(screen.getByText("Senior Backend Engineer")).toBeVisible();
   });
 
-  it("shows not_found HH message with company name when HH section expanded", async () => {
-    const user = userEvent.setup();
+  it("shows not_found HH message with company name in HH section", () => {
     renderDashboard(mockHhNotFoundViewModel);
 
-    await user.click(screen.getByText(/HH vacancies \(0\)/));
     expect(
       screen.getByText('Employer not found on hh.ru for "Acme Corporation".'),
-    ).toBeInTheDocument();
+    ).toBeVisible();
   });
 
   it("omits HH section for legacy runs without hhVacancyAnalysis", () => {

@@ -123,3 +123,70 @@ def optional_description_placeholder(language: ResponseLanguage) -> str:
     if language == ResponseLanguage.EN:
         return "not provided"
     return "не указано"
+
+
+def hh_employer_rating_text(language: ResponseLanguage, average_score: float) -> str:
+    """Return localized employer rating summary text for hh.ru blocks."""
+    if language == ResponseLanguage.EN:
+        return f"Employer rating on hh.ru: {average_score}/5."
+    return f"Рейтинг работодателя на hh.ru: {average_score}/5."
+
+
+def hh_employer_rating_unavailable(language: ResponseLanguage) -> str:
+    """Return localized text when hh.ru employer rating is unavailable."""
+    if language == ResponseLanguage.EN:
+        return "Employer rating on hh.ru is unavailable."
+    return "Рейтинг работодателя на hh.ru недоступен."
+
+
+def hh_no_active_vacancies(language: ResponseLanguage) -> str:
+    """Return localized salary summary when employer has no active vacancies."""
+    if language == ResponseLanguage.EN:
+        return "No active vacancies are listed on hh.ru for this employer."
+    return "У работодателя нет активных вакансий на hh.ru."
+
+
+def hh_no_conditions_to_summarize(language: ResponseLanguage) -> str:
+    """Return localized suffix when vacancy conditions cannot be summarized."""
+    if language == ResponseLanguage.EN:
+        return "No vacancy schedule or employment terms to summarize."
+    return "Нет данных о графике или условиях занятости для обобщения."
+
+
+def hh_employer_not_found(identity_name: str, language: ResponseLanguage) -> str:
+    """Return localized not-found message for hh.ru employer lookup."""
+    if language == ResponseLanguage.EN:
+        return f"Employer not found on hh.ru for «{identity_name}»."
+    return f"Работодатель не найден на hh.ru по названию «{identity_name}»."
+
+
+def hh_employer_not_found_with_tried(
+    identity_name: str,
+    tried_queries: list[str],
+    language: ResponseLanguage,
+) -> str:
+    """Return localized not-found message including attempted search queries."""
+    tried_text: str = ", ".join(f"«{query}»" for query in tried_queries)
+    if language == ResponseLanguage.EN:
+        return (
+            f"Employer not found on hh.ru for «{identity_name}». "
+            f"Tried: {tried_text}."
+        )
+    return (
+        f"Работодатель не найден на hh.ru по названию «{identity_name}». "
+        f"Пробовали: {tried_text}."
+    )
+
+
+def hh_found_vacancies_message(employer_name: str, vacancy_count: int, language: ResponseLanguage) -> str:
+    """Return localized success message for hh.ru vacancy lookup."""
+    if language == ResponseLanguage.EN:
+        return f"Found {vacancy_count} active vacancies on hh.ru for «{employer_name}»."
+    return f"Найдено {vacancy_count} активных вакансий на hh.ru для «{employer_name}»."
+
+
+def hh_analysis_failed_message(error: Exception, language: ResponseLanguage) -> str:
+    """Return localized generic HH analysis failure message."""
+    if language == ResponseLanguage.EN:
+        return f"HH vacancy analysis failed: {error}"
+    return f"Не удалось выполнить анализ вакансий hh.ru: {error}"

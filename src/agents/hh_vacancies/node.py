@@ -12,6 +12,7 @@ from agents.graph_state import (
     ResearchRunState,
     dump_hh_vacancy_analysis,
     load_company_identity,
+    load_run_request,
 )
 from agents.hh_vacancies.analysis import build_hh_vacancy_analysis
 from agents.hh_vacancies.client import HhApiClient
@@ -31,11 +32,14 @@ def analyze_hh_vacancies_step(
     client: HhApiClient = HhApiClient(settings)
     try:
         identity = load_company_identity(state["identity"])
+        request = load_run_request(state["request"])
         analysis = build_hh_vacancy_analysis(
             identity=identity,
             settings=settings,
             client=client,
             config=config,
+            search_query_override=None,
+            response_language=request.response_language,
         )
     finally:
         client.close()
