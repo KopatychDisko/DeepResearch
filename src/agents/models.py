@@ -204,6 +204,7 @@ class RunPhase(str, Enum):
     PENDING = "pending"
     RESOLVE_IDENTITY = "resolve_identity"
     AWAITING_IDENTITY = "awaiting_identity"
+    ANALYZE_HH_VACANCIES = "analyze_hh_vacancies"
     SUPERVISOR = "supervisor"
     STRUCTURE_EVENTS = "structure_events"
     MERGE_TIMELINE = "merge_timeline"

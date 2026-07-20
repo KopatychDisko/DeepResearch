@@ -12,6 +12,7 @@ from agents.models import (
     CompanyEvent,
     CompanyIdentity,
     EmployerVerdict,
+    HhVacancyAnalysis,
     RawFinding,
     RunRequest,
     SourceType,
@@ -35,6 +36,7 @@ class ResearchRunState(TypedDict):
     error_message: Annotated[str | None, _replace_optional_string]
     request: dict[str, object]
     identity: dict[str, object]
+    hh_vacancy_analysis: dict[str, object]
     findings: list[dict[str, object]]
     events: list[dict[str, object]]
     timeline: dict[str, object]
@@ -67,6 +69,16 @@ def dump_company_identity(identity: CompanyIdentity) -> dict[str, object]:
 def load_company_identity(payload: dict[str, object]) -> CompanyIdentity:
     """Deserialize a CompanyIdentity from graph state."""
     return CompanyIdentity.model_validate(payload)
+
+
+def dump_hh_vacancy_analysis(analysis: HhVacancyAnalysis) -> dict[str, object]:
+    """Serialize an HhVacancyAnalysis into JSON-compatible graph state."""
+    return analysis.model_dump(mode="json")
+
+
+def load_hh_vacancy_analysis(payload: dict[str, object]) -> HhVacancyAnalysis:
+    """Deserialize an HhVacancyAnalysis from graph state."""
+    return HhVacancyAnalysis.model_validate(payload)
 
 
 def dump_raw_findings(findings: list[RawFinding]) -> list[dict[str, object]]:
