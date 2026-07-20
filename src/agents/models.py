@@ -392,6 +392,16 @@ class HhVacancySummary(BaseModel):
     rating: HhEmployerRating
 
 
+class StructuredHhVacancyAssessment(BaseModel):
+    """Structured LLM output for hh.ru vacancy salary and conditions summaries."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    salary_summary: str = Field(min_length=1)
+    conditions_summary: str = Field(min_length=1)
+    employer_rating_text: str = Field(min_length=1)
+
+
 class HhVacancyAnalysis(BaseModel):
     """Structured hh.ru vacancy assessment block stored separately from timeline."""
 
