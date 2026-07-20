@@ -39,7 +39,7 @@ def _should_skip_identity_resolution(state: ResearchRunState) -> bool:
 def resolve_identity_step(
     state: ResearchRunState,
     config: RunnableConfig,
-) -> Command[Literal["supervisor", "__end__"]]:
+) -> Command[Literal["supervisor", "analyze_hh_vacancies", "__end__"]]:
     """Confirm company identity or end the run when resolution fails or is ambiguous."""
     if _should_skip_identity_resolution(state=state):
         return Command(
@@ -86,7 +86,7 @@ def resolve_identity_step(
         raise RuntimeError("Confirmed identity resolution returned no identity")
 
     return Command(
-        goto="supervisor",
+        goto="analyze_hh_vacancies",
         update={
             "identity": dump_company_identity(resolution.identity),
             "identity_candidates": dump_company_candidates(resolution.candidates),
