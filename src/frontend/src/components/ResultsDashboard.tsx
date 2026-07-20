@@ -1,20 +1,17 @@
-import { useState } from "react";
 import { useLanguage } from "../lib/i18n";
 import type { RunViewModel } from "../types";
+import { HhVacanciesPanel } from "./HhVacanciesPanel";
 import { SourceLinksPanel } from "./SourceLinksPanel";
-import { TimelineView } from "./TimelineView";
 import { VerdictCard } from "./VerdictCard";
 
 interface ResultsDashboardProps {
   result: RunViewModel;
 }
 
-type TabId = "verdict" | "timeline" | "sources";
-
 export function ResultsDashboard({ result }: ResultsDashboardProps) {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<TabId>("verdict");
   const sourceCount: number = result.findings.length;
+  const hhVacancyCount: number = result.hhVacancyAnalysis?.vacancies.length ?? 0;
 
   return (
     <section className="results-dashboard">
@@ -30,47 +27,28 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
         </div>
       </header>
 
-      <nav className="tab-nav" aria-label={t.reportSectionsAria}>
-        <button
-          type="button"
-          className={activeTab === "verdict" ? "tab active" : "tab"}
-          onClick={() => setActiveTab("verdict")}
-        >
-          {t.tabVerdict}
-        </button>
-        <button
-          type="button"
-          className={activeTab === "timeline" ? "tab active" : "tab"}
-          onClick={() => setActiveTab("timeline")}
-        >
-          {t.tabTimeline}
-        </button>
-        <button
-          type="button"
-          className={activeTab === "sources" ? "tab active" : "tab"}
-          onClick={() => setActiveTab("sources")}
-        >
-          {t.tabSources} ({sourceCount})
-        </button>
-      </nav>
+      <VerdictCard verdict={result.verdict} companyName={result.identity.canonical_name} />
 
-      <div className="tab-content">
-        {activeTab === "verdict" ? (
-          <VerdictCard verdict={result.verdict} companyName={result.identity.canonical_name} />
-        ) : null}
-        {activeTab === "timeline" ? (
-          <article className="card">
-            <TimelineView timeline={result.timeline} />
-          </article>
-        ) : null}
-        {activeTab === "sources" ? (
-          <article className="card">
-            <h3 className="section-title">{t.sourcesTitle}</h3>
-            <p className="section-hint">{t.sourcesHint}</p>
-            <SourceLinksPanel findings={result.findings} />
-          </article>
-        ) : null}
-      </div>
+      {result.hhVacancyAnalysis !== undefined ? (
+        <details className="collapsible-section card">
+          <summary className="collapsible-summary">
+            {t.hhVacanciesTitle} ({hhVacancyCount})
+          </summary>
+          <p className="section-hint">{t.hhVacanciesHint}</p>
+          <HhVacanciesPanel
+            hhVacancyAnalysis={result.hhVacancyAnalysis}
+            companyName={result.identity.canonical_name}
+          />
+        </details>
+      ) : null}
+
+      <details className="collapsible-section card">
+        <summary className="collapsible-summary">
+          {t.tabSources} ({sourceCount})
+        </summary>
+        <p className="section-hint">{t.sourcesHint}</p>
+        <SourceLinksPanel findings={result.findings} />
+      </details>
     </section>
   );
 }
