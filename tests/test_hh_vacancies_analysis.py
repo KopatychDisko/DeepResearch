@@ -202,9 +202,9 @@ def test_found_path_never_returns_more_than_ten_vacancies(
     )
 
     def _fake_invoke_structured_output(
-        _config: RunnableConfig,
-        _model_class: type[StructuredHhVacancyAssessment],
-        _prompt: str,
+        config: RunnableConfig,
+        model_class: type[StructuredHhVacancyAssessment],
+        prompt: str,
     ) -> StructuredHhVacancyAssessment:
         return StructuredHhVacancyAssessment(
             salary_summary="Salary spread across listed vacancies.",
@@ -249,9 +249,9 @@ def test_unavailable_rating_uses_explicit_text_without_invented_score(
     )
 
     def _fake_invoke_structured_output(
-        _config: RunnableConfig,
-        _model_class: type[StructuredHhVacancyAssessment],
-        _prompt: str,
+        config: RunnableConfig,
+        model_class: type[StructuredHhVacancyAssessment],
+        prompt: str,
     ) -> StructuredHhVacancyAssessment:
         return StructuredHhVacancyAssessment(
             salary_summary="Salaries vary by role.",
