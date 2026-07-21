@@ -1,0 +1,107 @@
+[
+  {
+    "id": "auto_confirm_single_url_match",
+    "candidates": [
+      {
+        "candidate_id": "a",
+        "name": "Яндекс",
+        "description": "IT-компания",
+        "website_url": "https://yandex.ru",
+        "confidence": "high"
+      },
+      {
+        "candidate_id": "b",
+        "name": "Яндекс Такси",
+        "description": "Такси",
+        "website_url": "https://taxi.yandex.ru",
+        "confidence": "medium"
+      }
+    ],
+    "requested_company_url": "https://yandex.ru/company",
+    "expected_selected_name": "Яндекс",
+    "expected_auto_confirm": true
+  },
+  {
+    "id": "ambiguous_multiple_high",
+    "candidates": [
+      {
+        "candidate_id": "a",
+        "name": "Ромашка ООО",
+        "description": "Цветы",
+        "website_url": "https://romashka-a.ru",
+        "confidence": "high"
+      },
+      {
+        "candidate_id": "b",
+        "name": "Ромашка Агро",
+        "description": "Агро",
+        "website_url": "https://romashka-b.ru",
+        "confidence": "high"
+      }
+    ],
+    "requested_company_url": null,
+    "expected_selected_name": null,
+    "expected_auto_confirm": false
+  },
+  {
+    "id": "auto_confirm_single_high_confidence",
+    "candidates": [
+      {
+        "candidate_id": "a",
+        "name": "Acme Corp",
+        "description": "Manufacturing",
+        "website_url": "https://acme.example",
+        "confidence": "high"
+      }
+    ],
+    "requested_company_url": null,
+    "expected_selected_name": "Acme Corp",
+    "expected_auto_confirm": true
+  },
+  {
+    "id": "no_auto_confirm_low_only",
+    "candidates": [
+      {
+        "candidate_id": "a",
+        "name": "Unknown Corp",
+        "description": "Uncertain match",
+        "website_url": "https://unknown.example",
+        "confidence": "low"
+      }
+    ],
+    "requested_company_url": null,
+    "expected_selected_name": null,
+    "expected_auto_confirm": false
+  },
+  {
+    "id": "www_host_strip_match",
+    "candidates": [],
+    "requested_company_url": null,
+    "expected_selected_name": null,
+    "expected_auto_confirm": false,
+    "input_url": "https://www.yandex.ru/about",
+    "expected_normalized_host": "yandex.ru"
+  },
+  {
+    "id": "multiple_host_matches_ambiguous",
+    "candidates": [
+      {
+        "candidate_id": "a",
+        "name": "Example A",
+        "description": "Division A",
+        "website_url": "https://example.com",
+        "confidence": "high"
+      },
+      {
+        "candidate_id": "b",
+        "name": "Example B",
+        "description": "Division B",
+        "website_url": "https://www.example.com",
+        "confidence": "high"
+      }
+    ],
+    "requested_company_url": "https://example.com/page",
+    "expected_selected_name": null,
+    "expected_auto_confirm": false
+  }
+]
