@@ -9,7 +9,7 @@ import pytest
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 
-from agents.graph_state import (
+from agents.graph.state import (
     ResearchRunState,
     dump_company_identity,
     dump_run_request,

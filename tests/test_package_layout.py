@@ -10,6 +10,7 @@ SRC_BACKEND = PROJECT_ROOT / "src" / "backend"
 PYPROJECT = PROJECT_ROOT / "pyproject.toml"
 
 REQUIRED_SUBAGENT_DIRS: tuple[str, ...] = (
+    "graph",
     "identity",
     "supervisor",
     "sources",
@@ -53,7 +54,7 @@ def test_sources_modules_exist() -> None:
 
 
 def test_pipeline_assembler_exists() -> None:
-    pipeline_path = SRC_AGENTS / "pipeline.py"
+    pipeline_path = SRC_AGENTS / "graph" / "pipeline.py"
     assert pipeline_path.is_file(), f"missing pipeline assembler: {pipeline_path}"
 
 

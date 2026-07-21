@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 
 from agents.configuration import Configuration
-from agents.graph_state import (
+from agents.graph.state import (
     ResearchRunState,
     dump_hh_vacancy_analysis,
     load_company_identity,
@@ -30,9 +30,11 @@ def analyze_hh_vacancies_step(
     """Fetch hh.ru vacancy analysis for the resolved identity, then continue to supervisor."""
     settings: Configuration = Configuration.from_runnable_config(config)
     client: HhApiClient = HhApiClient(settings)
+
     try:
         identity = load_company_identity(state["identity"])
         request = load_run_request(state["request"])
+
         analysis = build_hh_vacancy_analysis(
             identity=identity,
             settings=settings,

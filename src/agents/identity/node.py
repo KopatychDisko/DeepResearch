@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 
 from agents.configuration import Configuration
-from agents.graph_state import (
+from agents.graph.state import (
     ResearchRunState,
     dump_company_candidates,
     dump_company_identity,
@@ -29,6 +29,7 @@ def _phase_update(phase: RunPhase) -> dict[str, str]:
 def _should_skip_identity_resolution(state: ResearchRunState) -> bool:
     status_value: str = state.get("status", "")
     phase_value: str = state.get("phase", "")
+
     if status_value != RunLifecycleStatus.RUNNING.value:
         return False
     if phase_value not in (
@@ -36,6 +37,7 @@ def _should_skip_identity_resolution(state: ResearchRunState) -> bool:
         RunPhase.ANALYZE_HH_VACANCIES.value,
     ):
         return False
+
     identity_candidates = state.get("identity_candidates", [])
     return not identity_candidates
 
@@ -56,6 +58,7 @@ def resolve_identity_step(
             if resume_target == "analyze_hh_vacancies"
             else RunPhase.SUPERVISOR
         )
+
         return Command(
             goto=resume_target,
             update=_phase_update(resume_phase),
@@ -63,6 +66,7 @@ def resolve_identity_step(
 
     settings: Configuration = Configuration.from_runnable_config(config)
     request = load_run_request(state["request"])
+
     resolution = resolve_company_identity_from_web(
         company_name=request.company_name,
         company_url=request.company_url,

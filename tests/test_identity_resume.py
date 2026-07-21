@@ -6,7 +6,7 @@ from uuid import uuid4
 from langgraph.checkpoint.sqlite import SqliteSaver
 
 from agents.configuration import Configuration
-from agents.graph_state import dump_company_candidates, dump_company_identity
+from agents.graph.state import dump_company_candidates, dump_company_identity
 from agents.identity.resolution import candidate_to_identity
 from agents.models import (
     CompanyCandidate,
@@ -15,12 +15,10 @@ from agents.models import (
     RunPhase,
     RunRequest,
 )
-from agents.pipeline import _should_skip_identity_resolution, build_research_graph
-from backend.run_service import (
-    _build_checkpointer_context,
-    _graph_resume_input,
-    build_initial_state,
-)
+from agents.graph.pipeline import _should_skip_identity_resolution, build_research_graph
+from backend.run.context import build_checkpointer_context
+from backend.run.execution import graph_resume_input
+from backend.run.initial_state import build_initial_state
 
 
 def test_should_skip_identity_resolution_after_user_confirmation() -> None:
@@ -82,7 +80,7 @@ def test_graph_resume_input_after_identity_confirmation() -> None:
         )
     )
 
-    resume_input = _graph_resume_input(state=state, next_nodes=())
+    resume_input = graph_resume_input(state=state, next_nodes=())
     assert resume_input is not None
     assert resume_input.goto == "analyze_hh_vacancies"
 
@@ -103,7 +101,7 @@ def test_identity_confirmation_marks_resume_pending_state() -> None:
     state["identity_candidates"] = dump_company_candidates([candidate])
 
     settings = Configuration()
-    execution_context = _build_checkpointer_context(settings=settings, run_id=run_id)
+    execution_context = build_checkpointer_context(settings=settings, run_id=run_id)
     connection = sqlite3.connect(":memory:", check_same_thread=False)
     checkpointer = SqliteSaver(connection)
     checkpointer.setup()
@@ -132,6 +130,6 @@ def test_identity_confirmation_marks_resume_pending_state() -> None:
     assert snapshot.values["status"] == RunLifecycleStatus.RUNNING.value
     assert snapshot.values["phase"] == RunPhase.ANALYZE_HH_VACANCIES.value
     assert snapshot.values["identity_candidates"] == []
-    assert _graph_resume_input(state=snapshot.values, next_nodes=tuple(snapshot.next or ())) is not None or snapshot.next == (
+    assert graph_resume_input(state=snapshot.values, next_nodes=tuple(snapshot.next or ())) is not None or snapshot.next == (
         "resolve_identity",
     )

@@ -51,6 +51,9 @@ class ResearchRunState(TypedDict):
     budget_stop_reason: str | None
 
 
+# --- Run request ---
+
+
 def dump_run_request(request: RunRequest) -> dict[str, object]:
     """Serialize a RunRequest into JSON-compatible graph state."""
     return request.model_dump(mode="json")
@@ -61,6 +64,9 @@ def load_run_request(payload: dict[str, object]) -> RunRequest:
     return RunRequest.model_validate(payload)
 
 
+# --- Identity ---
+
+
 def dump_company_identity(identity: CompanyIdentity) -> dict[str, object]:
     """Serialize a CompanyIdentity into JSON-compatible graph state."""
     return identity.model_dump(mode="json")
@@ -69,6 +75,19 @@ def dump_company_identity(identity: CompanyIdentity) -> dict[str, object]:
 def load_company_identity(payload: dict[str, object]) -> CompanyIdentity:
     """Deserialize a CompanyIdentity from graph state."""
     return CompanyIdentity.model_validate(payload)
+
+
+def dump_company_candidates(candidates: list[CompanyCandidate]) -> list[dict[str, object]]:
+    """Serialize identity candidates into JSON-compatible graph state."""
+    return [candidate.model_dump(mode="json") for candidate in candidates]
+
+
+def load_company_candidates(payload: list[dict[str, object]]) -> list[CompanyCandidate]:
+    """Deserialize identity candidates from graph state."""
+    return [CompanyCandidate.model_validate(item) for item in payload]
+
+
+# --- HH vacancies ---
 
 
 def dump_hh_vacancy_analysis(analysis: HhVacancyAnalysis) -> dict[str, object]:
@@ -88,8 +107,12 @@ def is_hh_vacancy_analysis_pending(state: ResearchRunState) -> bool:
         return True
     if not isinstance(raw_analysis, dict):
         raise TypeError("hh_vacancy_analysis must be a dict in graph state")
+
     analysis = load_hh_vacancy_analysis(raw_analysis)
     return analysis.fetched_at == ""
+
+
+# --- Research artifacts ---
 
 
 def dump_raw_findings(findings: list[RawFinding]) -> list[dict[str, object]]:
@@ -132,14 +155,7 @@ def load_employer_verdict(payload: dict[str, object]) -> EmployerVerdict:
     return EmployerVerdict.model_validate(payload)
 
 
-def dump_company_candidates(candidates: list[CompanyCandidate]) -> list[dict[str, object]]:
-    """Serialize identity candidates into JSON-compatible graph state."""
-    return [candidate.model_dump(mode="json") for candidate in candidates]
-
-
-def load_company_candidates(payload: list[dict[str, object]]) -> list[CompanyCandidate]:
-    """Deserialize identity candidates from graph state."""
-    return [CompanyCandidate.model_validate(item) for item in payload]
+# --- Supervisor ---
 
 
 def dump_completed_sources(sources: list[SourceType]) -> list[str]:

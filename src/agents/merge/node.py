@@ -6,7 +6,7 @@ from typing import Literal
 
 from langgraph.types import Command
 
-from agents.graph_state import ResearchRunState, dump_canonical_timeline, load_company_events
+from agents.graph.state import ResearchRunState, dump_canonical_timeline, load_company_events
 from agents.merge.merge import merge_events_into_timeline
 from agents.models import RunPhase
 
@@ -19,6 +19,7 @@ def merge_timeline_step(state: ResearchRunState) -> Command[Literal["generate_ve
     """Deduplicate events into a canonical timeline, then continue to verdict."""
     events = load_company_events(state["events"])
     timeline = merge_events_into_timeline(events)
+
     return Command(
         goto="generate_verdict",
         update={

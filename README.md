@@ -65,8 +65,6 @@ AI-сервис для проверки работодателя перед со
 
 ## Скриншоты интерфейса
 
-> Добавьте изображения в `docs/images/` и они автоматически отобразятся в README.
-
 ### 1. Итоговый дашборд (verdict + sources)
 ![Verdict dashboard](docs/images/dashboard.png)
 
@@ -189,5 +187,5 @@ src/backend/     # FastAPI API + жизненный цикл run
 src/frontend/    # React UI
 tests/           # Unit/integration tests
 scripts/         # CLI сценарии
-eval/            # Eval datasets и сценарии оценки качества
+eval/datasets/   # Golden fixtures for merge quality tests
 ```

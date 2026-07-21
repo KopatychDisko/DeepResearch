@@ -8,7 +8,7 @@ from typing import Literal
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 
-from agents.graph_state import (
+from agents.graph.state import (
     ResearchRunState,
     dump_company_events,
     load_company_identity,
@@ -35,6 +35,7 @@ def _findings_text(findings: list[RawFinding]) -> str:
     max_findings: int = 20
     max_snippet_length: int = 600
     selected_findings: list[RawFinding] = findings[:max_findings]
+
     serialized_findings: list[dict[str, str]] = []
     for finding in selected_findings:
         serialized_findings.append(
@@ -45,6 +46,7 @@ def _findings_text(findings: list[RawFinding]) -> str:
                 "snippet": _truncate_text(finding.snippet, max_snippet_length),
             }
         )
+
     return json.dumps(serialized_findings, ensure_ascii=False, indent=2)
 
 
@@ -62,6 +64,7 @@ def structure_events_step(
 
     identity = load_company_identity(state["identity"])
     request = load_run_request(state["request"])
+
     parsed_output = invoke_structured_output(
         config=config,
         model_class=StructuredCompanyEvents,
@@ -79,6 +82,7 @@ def structure_events_step(
     for event in parsed_output.events:
         if str(event.source_url) in allowed_urls:
             filtered_events.append(event)
+
     return Command(
         goto="merge_timeline",
         update={

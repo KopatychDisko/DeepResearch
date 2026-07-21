@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from langgraph.types import Command
 
-from agents.graph_state import dump_company_identity, dump_hh_vacancy_analysis
+from agents.graph.state import dump_company_identity, dump_hh_vacancy_analysis
 from agents.hh_vacancies.analysis import build_pending_hh_vacancy_analysis
 from agents.identity.resolution import candidate_to_identity
 from agents.models import (
@@ -18,11 +18,9 @@ from agents.models import (
     RunPhase,
     RunRequest,
 )
-from backend.run_service import (
-    _graph_resume_input,
-    _hh_vacancy_analysis_pending,
-    build_initial_state,
-)
+from backend.run.execution import graph_resume_input
+from backend.run.initial_state import build_initial_state
+from backend.run.state_mapping import hh_vacancy_analysis_pending
 
 
 def _confirmed_identity_state(*, hh_analysis: HhVacancyAnalysis) -> dict[str, object]:
@@ -69,20 +67,20 @@ def test_hh_vacancy_analysis_pending_for_initial_placeholder() -> None:
     request = RunRequest(company_name="Яндекс")
     state = build_initial_state(request=request, run_id=run_id)
 
-    assert _hh_vacancy_analysis_pending(state=state) is True
+    assert hh_vacancy_analysis_pending(state=state) is True
 
 
 def test_hh_vacancy_analysis_not_pending_after_fetch() -> None:
     state = _confirmed_identity_state(hh_analysis=_completed_hh_analysis())
 
-    assert _hh_vacancy_analysis_pending(state=state) is False
+    assert hh_vacancy_analysis_pending(state=state) is False
 
 
 def test_graph_resume_input_routes_to_analyze_hh_vacancies_when_pending() -> None:
     pending = build_pending_hh_vacancy_analysis(search_query="Яндекс")
     state = _confirmed_identity_state(hh_analysis=pending)
 
-    resume_input = _graph_resume_input(state=state, next_nodes=())
+    resume_input = graph_resume_input(state=state, next_nodes=())
 
     assert resume_input is not None
     assert isinstance(resume_input, Command)
@@ -92,7 +90,7 @@ def test_graph_resume_input_routes_to_analyze_hh_vacancies_when_pending() -> Non
 def test_graph_resume_input_routes_to_supervisor_when_hh_complete() -> None:
     state = _confirmed_identity_state(hh_analysis=_completed_hh_analysis())
 
-    resume_input = _graph_resume_input(state=state, next_nodes=())
+    resume_input = graph_resume_input(state=state, next_nodes=())
 
     assert resume_input is not None
     assert isinstance(resume_input, Command)

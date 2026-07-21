@@ -8,7 +8,7 @@ import pytest
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
-from agents.graph_state import (
+from agents.graph.state import (
     ResearchRunState,
     dump_company_identity,
     dump_run_request,
@@ -188,7 +188,7 @@ def test_source_tool_error_observation_continues(monkeypatch: pytest.MonkeyPatch
         raise RuntimeError("source failed after retries")
 
     monkeypatch.setattr(
-        "agents.supervisor.node._execute_source_tool",
+        "agents.supervisor.node.execute_source_tool",
         _raise_source_error,
     )
     ai_message = AIMessage(
@@ -234,7 +234,7 @@ def test_search_success_observation_omits_finding_body(monkeypatch: pytest.Monke
     ) -> tuple[SourceType, list[RawFinding]]:
         return SourceType.NEWS, [finding]
 
-    monkeypatch.setattr("agents.supervisor.node._execute_source_tool", _fake_source)
+    monkeypatch.setattr("agents.supervisor.node.execute_source_tool", _fake_source)
     ai_message = AIMessage(
         content="",
         tool_calls=[{"name": "search_news", "args": {}, "id": "call-news-2", "type": "tool_call"}],

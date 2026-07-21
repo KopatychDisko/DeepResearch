@@ -31,7 +31,6 @@ src/frontend/dist/
 .cursor/
 .claude/
 _refs/
-.deepeval/
 
 # IDE / OS
 .idea/

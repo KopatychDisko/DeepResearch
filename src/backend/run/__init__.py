@@ -1,18 +1,20 @@
-"""Backward-compatible re-exports for the research run lifecycle API."""
+"""Research run lifecycle package."""
 
 from __future__ import annotations
 
-from backend.run import (
-    build_initial_state,
-    confirm_and_continue_research_run_background,
+from backend.run.hh_retry import retry_hh_employer_search
+from backend.run.identity import (
     confirm_company_identity_selection,
+    validate_identity_confirmation_request,
+)
+from backend.run.initial_state import build_initial_state
+from backend.run.service import (
+    confirm_and_continue_research_run_background,
     continue_research_run_background,
     get_research_run_status,
     resume_research_run,
-    retry_hh_employer_search,
     run_research_pipeline,
     start_research_run_background,
-    validate_identity_confirmation_request,
 )
 
 __all__ = [

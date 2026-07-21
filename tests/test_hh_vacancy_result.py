@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from agents.graph_state import (
+from agents.graph.state import (
     dump_canonical_timeline,
     dump_company_identity,
     dump_employer_verdict,
@@ -22,11 +22,9 @@ from agents.models import (
     RunStatusResponse,
 )
 from agents.verdict.verdict import build_insufficient_data_verdict
-from backend.run_service import (
-    _build_status_response,
-    _state_to_result,
-    build_initial_state,
-)
+from backend.run.initial_state import build_initial_state
+from backend.run.state_mapping import state_to_result
+from backend.run.status import build_status_response
 from agents.hh_vacancies.analysis import build_pending_hh_vacancy_analysis
 
 
@@ -110,7 +108,7 @@ def test_build_initial_state_seeds_pending_hh_vacancy_analysis() -> None:
 
 def test_state_to_result_includes_not_found_hh_vacancy_analysis() -> None:
     state = _minimal_completed_state(_not_found_analysis())
-    result = _state_to_result(state=state)
+    result = state_to_result(state=state)
 
     assert result.hh_vacancy_analysis.status == HhVacancyStatus.NOT_FOUND
     assert result.hh_vacancy_analysis.vacancies == []
@@ -119,7 +117,7 @@ def test_state_to_result_includes_not_found_hh_vacancy_analysis() -> None:
 
 def test_state_to_result_includes_found_hh_vacancy_analysis() -> None:
     state = _minimal_completed_state(_found_analysis())
-    result = _state_to_result(state=state)
+    result = state_to_result(state=state)
 
     assert result.hh_vacancy_analysis.status == HhVacancyStatus.FOUND
     assert result.hh_vacancy_analysis.salary_summary != ""
@@ -128,7 +126,7 @@ def test_state_to_result_includes_found_hh_vacancy_analysis() -> None:
 
 def test_research_run_result_verdict_fields_unchanged() -> None:
     state = _minimal_completed_state(_found_analysis())
-    result = _state_to_result(state=state)
+    result = state_to_result(state=state)
 
     assert result.verdict.score >= 1
     assert result.verdict.summary != ""
@@ -138,7 +136,7 @@ def test_research_run_result_verdict_fields_unchanged() -> None:
 def test_build_status_response_serializes_hh_vacancy_analysis() -> None:
     run_id = uuid4()
     state = _minimal_completed_state(_not_found_analysis())
-    response = _build_status_response(run_id=run_id, state=state, next_nodes=())
+    response = build_status_response(run_id=run_id, state=state, next_nodes=())
 
     assert response.result is not None
     dumped = response.model_dump(mode="json")
