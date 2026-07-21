@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from agents.merge.merge import merge_events_into_timeline
 from agents.models import (
@@ -20,9 +20,9 @@ class MergeGoldenCase(TypedDict):
     expected_source_url_count: int
     expected_conflicts: int
     expected_has_date_conflict: bool
-    expected_confidence: str
-    expected_date: str
-    expected_first_date: str
+    expected_confidence: NotRequired[str]
+    expected_date: NotRequired[str]
+    expected_first_date: NotRequired[str]
 
 
 def load_merge_golden_cases() -> list[MergeGoldenCase]:

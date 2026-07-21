@@ -92,5 +92,45 @@
     "expected_first_date": "2024-06-01",
     "expected_conflicts": 0,
     "expected_has_date_conflict": false
+  },
+  {
+    "id": "three_way_dedup",
+    "input_events": [
+      {
+        "date": "2024-04-12",
+        "category": "review_signal",
+        "description": "Сотрудники жалуются на переработки",
+        "source_url": "https://example.com/review-x",
+        "confidence": "medium"
+      },
+      {
+        "date": "2024-04-12",
+        "category": "review_signal",
+        "description": "Сотрудники жалуются на переработки.",
+        "source_url": "https://example.com/review-y",
+        "confidence": "high"
+      },
+      {
+        "date": "2024-04-12",
+        "category": "review_signal",
+        "description": "Сотрудники жалуются на переработки!",
+        "source_url": "https://example.com/review-z",
+        "confidence": "low"
+      }
+    ],
+    "expected_canonical_count": 1,
+    "expected_source_url_count": 3,
+    "expected_conflicts": 0,
+    "expected_confidence": "high",
+    "expected_date": "2024-04-12",
+    "expected_has_date_conflict": false
+  },
+  {
+    "id": "empty_input_events",
+    "input_events": [],
+    "expected_canonical_count": 0,
+    "expected_source_url_count": 0,
+    "expected_conflicts": 0,
+    "expected_has_date_conflict": false
   }
 ]
