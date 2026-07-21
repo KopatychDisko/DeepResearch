@@ -7,6 +7,7 @@ from deepeval import assert_test
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
 
+from tests.eval_common import EvalQualityMetric
 from tests.merge_eval_utils import (
     conflict_accuracy_score,
     date_fact_accuracy_score,
@@ -19,18 +20,7 @@ from tests.merge_eval_utils import (
 pytestmark = pytest.mark.eval
 
 
-class MergeQualityMetric(BaseMetric):
-    def is_successful(self) -> bool:
-        if self.success is None:
-            return False
-        return self.success
-
-
-class DedupRecallMetric(MergeQualityMetric):
-    def __init__(self, threshold: float) -> None:
-        self.threshold = threshold
-        self.async_mode = False
-
+class DedupRecallMetric(EvalQualityMetric):
     def measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
         payload: dict[str, object] = json.loads(test_case.input)
         case_id: str = str(payload["case_id"])
@@ -41,15 +31,8 @@ class DedupRecallMetric(MergeQualityMetric):
         self.success = self.score >= self.threshold
         return self.score
 
-    async def a_measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
-        return self.measure(test_case=test_case, *args, **kwargs)
 
-
-class DedupPrecisionMetric(MergeQualityMetric):
-    def __init__(self, threshold: float) -> None:
-        self.threshold = threshold
-        self.async_mode = False
-
+class DedupPrecisionMetric(EvalQualityMetric):
     def measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
         payload: dict[str, object] = json.loads(test_case.input)
         case_id: str = str(payload["case_id"])
@@ -60,15 +43,8 @@ class DedupPrecisionMetric(MergeQualityMetric):
         self.success = self.score >= self.threshold
         return self.score
 
-    async def a_measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
-        return self.measure(test_case=test_case, *args, **kwargs)
 
-
-class DateFactAccuracyMetric(MergeQualityMetric):
-    def __init__(self, threshold: float) -> None:
-        self.threshold = threshold
-        self.async_mode = False
-
+class DateFactAccuracyMetric(EvalQualityMetric):
     def measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
         payload: dict[str, object] = json.loads(test_case.input)
         case_id: str = str(payload["case_id"])
@@ -79,15 +55,8 @@ class DateFactAccuracyMetric(MergeQualityMetric):
         self.success = self.score >= self.threshold
         return self.score
 
-    async def a_measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
-        return self.measure(test_case=test_case, *args, **kwargs)
 
-
-class ConflictDetectionMetric(MergeQualityMetric):
-    def __init__(self, threshold: float) -> None:
-        self.threshold = threshold
-        self.async_mode = False
-
+class ConflictDetectionMetric(EvalQualityMetric):
     def measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
         payload: dict[str, object] = json.loads(test_case.input)
         case_id: str = str(payload["case_id"])
@@ -97,9 +66,6 @@ class ConflictDetectionMetric(MergeQualityMetric):
         self.score = conflict_accuracy_score(case=selected_case, timeline=timeline)
         self.success = self.score >= self.threshold
         return self.score
-
-    async def a_measure(self, test_case: LLMTestCase, *args, **kwargs) -> float:
-        return self.measure(test_case=test_case, *args, **kwargs)
 
 
 @pytest.mark.parametrize("case", load_merge_golden_cases(), ids=lambda case: case["id"])
@@ -115,4 +81,4 @@ def test_deepeval_merge_quality_baseline(case) -> None:
         DateFactAccuracyMetric(threshold=1.0),
         ConflictDetectionMetric(threshold=1.0),
     ]
-    assert_test(test_case=test_case, metrics=metrics)
+    assert_test(test_case=test_case, metrics=metrics, run_async=False)
