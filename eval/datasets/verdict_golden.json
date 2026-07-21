@@ -1,0 +1,137 @@
+[
+  {
+    "id": "red_flags_severe_only",
+    "timeline": {
+      "events": [
+        {
+          "date": "2024-01-01",
+          "category": "product",
+          "description": "Запуск нового сервиса",
+          "source_urls": ["https://example.com/a"],
+          "confidence": "high",
+          "has_date_conflict": false
+        },
+        {
+          "date": "2024-02-01",
+          "category": "layoffs",
+          "description": "Сокращение 10% штата",
+          "source_urls": ["https://example.com/b"],
+          "confidence": "high",
+          "has_date_conflict": false
+        },
+        {
+          "date": "2024-03-01",
+          "category": "scandal",
+          "description": "Расследование регулятора",
+          "source_urls": ["https://example.com/c"],
+          "confidence": "high",
+          "has_date_conflict": false
+        }
+      ],
+      "conflicts": []
+    },
+    "language": "ru",
+    "expected_red_flag_count": 2,
+    "expected_risk_count": 0,
+    "expected_red_flag_substrings": ["Сокращение", "Расследование"]
+  },
+  {
+    "id": "risks_empty_positive_timeline",
+    "timeline": {
+      "events": [
+        {
+          "date": "2024-01-01",
+          "category": "product",
+          "description": "Новый продукт",
+          "source_urls": ["https://example.com/a"],
+          "confidence": "high",
+          "has_date_conflict": false
+        },
+        {
+          "date": "2024-02-01",
+          "category": "funding",
+          "description": "Раунд инвестиций",
+          "source_urls": ["https://example.com/b"],
+          "confidence": "high",
+          "has_date_conflict": false
+        }
+      ],
+      "conflicts": []
+    },
+    "language": "ru",
+    "expected_red_flag_count": 0,
+    "expected_risk_count": 0
+  },
+  {
+    "id": "risks_leadership_reviews_conflicts",
+    "timeline": {
+      "events": [
+        {
+          "date": "2024-01-01",
+          "category": "leadership",
+          "description": "Смена CEO",
+          "source_urls": ["https://example.com/a"],
+          "confidence": "high",
+          "has_date_conflict": false
+        },
+        {
+          "date": "2024-02-01",
+          "category": "review_signal",
+          "description": "Смешанные отзывы о переработках",
+          "source_urls": ["https://example.com/b"],
+          "confidence": "high",
+          "has_date_conflict": false
+        }
+      ],
+      "conflicts": [
+        {
+          "category": "leadership",
+          "message": "Разные даты смены руководства",
+          "source_urls": ["https://example.com/a", "https://example.com/b"],
+          "dates": ["2023", "2024"]
+        }
+      ]
+    },
+    "language": "ru",
+    "expected_red_flag_count": 0,
+    "expected_risk_count": 3,
+    "expected_risk_substrings": ["CEO", "отзывы", "даты"]
+  },
+  {
+    "id": "insufficient_data_empty_timeline",
+    "timeline": {
+      "events": [],
+      "conflicts": []
+    },
+    "language": "ru",
+    "expected_red_flag_count": 0,
+    "expected_risk_count": 0
+  },
+  {
+    "id": "evidence_links_complete",
+    "timeline": {
+      "events": [
+        {
+          "date": "2024-01-01",
+          "category": "product",
+          "description": "Product launch",
+          "source_urls": ["https://example.com/a"],
+          "confidence": "high",
+          "has_date_conflict": false
+        },
+        {
+          "date": "2024-02-01",
+          "category": "funding",
+          "description": "Series B funding",
+          "source_urls": ["https://example.com/b", "https://example.com/c"],
+          "confidence": "medium",
+          "has_date_conflict": false
+        }
+      ],
+      "conflicts": []
+    },
+    "language": "en",
+    "expected_red_flag_count": 0,
+    "expected_risk_count": 0
+  }
+]
